@@ -104,4 +104,10 @@ Prefer separate Preview credentials/data. Preview builds should not write to the
 
 If account/storage provisioning or real auth cannot be verified in the remaining window, demonstrate the honest local working app and state cloud deployment is unfinished. Do not remove authentication, ownership or persistence to manufacture a live link.
 
+## Latest capture checkpoint — 10 October 2026
+
+Capture commit `a714a65` built Ready as Production deployment `3zTEUiTdXeXHvaqSuLdLhoD7BU77`. At the actual app URL, `/api/config/ai-provider` now confirms real Groq/Gemini voice and Gemini receipt routing, with no Demo fallback. Health returns 200 and both unauthenticated capture requests return 401. Signed-in capture is available; the original confirmed synthetic receipt opens through the private API after redeployment, and the three existing cloud test rows/balance are unchanged.
+
+The full 237-case offline suite and frontend build pass. Real API synthetic speech/text/receipt checks passed their expected fields, with intermittent Gemini 503s recorded honestly. Actual human Urdu/Punjabi microphone, handwritten/photo quality and two-account checks still require rehearsal; unavailable AI must show an error, not manufactured fields. No new credentials or cloud settings were changed for this capture release.
+
 Record outcomes in the [implementation ledger](REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md); rehearse with the [booth runbook](REGIONAL_DEMO_RUNBOOK.md). The regional deck update is a separate checkpoint.

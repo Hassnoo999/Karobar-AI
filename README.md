@@ -8,7 +8,7 @@ Karobaar turns a merchant's voice notes and receipt photos into a reviewable fin
 
 Built for the Alibaba Cloud AI Hackathon Pakistan 2026, Financial Inclusion track.
 
-[Open the hosted app](https://project-4ps4k.vercel.app/) — requires a merchant account. Both services are deployed. Real sign-in, synthetic receipt extraction/confirmation, repayment and ledger-grounded answers have been checked. Receipt reopening and multi-account checks are tracked in the [deployment notes](docs/VERCEL_DEPLOYMENT_PLAN.md), not implied by the link alone.
+[Open the hosted app](https://project-4ps4k.vercel.app/) — requires a merchant account. Both services are deployed. Real sign-in, synthetic receipt extraction/confirmation/reopening, repayment and ledger-grounded answers have been checked. Capture now routes to real APIs without Demo substitution. Human microphone/photo rehearsal and multi-account checks remain tracked in the [implementation ledger](docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md), not implied by the link alone.
 
 ## What we built
 
