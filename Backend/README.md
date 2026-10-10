@@ -6,19 +6,18 @@ Pakistan 2026** — Financial Inclusion track.
 
 A merchant speaks one sentence in Urdu / Roman Urdu ("Ahmed ne paanch hazaar ka maal
 udhaar liya"), snaps a receipt, or asks a question ("Total udhaar kitna hai?") — and
-gets structured, trustworthy financial records plus a **Financial Evidence Passport**
+gets reviewable business records plus a **Financial Evidence Passport**
 they can show to microfinance lenders.
 
 ## Core design rule
 
 > **AI captures and explains. SQL computes every number.**
 
-The LLM never performs arithmetic and never writes to the ledger directly:
+Ledger arithmetic is deterministic; AI proposes drafts, and financial answers use the actual ledger values:
 
 - Voice/receipt -> AI **draft** -> merchant reviews -> only then `POST /api/events` saves it.
-- "Ask Karobaar" -> LLM **picks a tool** -> SQL computes the value -> LLM only **phrases** the given numbers.
-- Financing matching says *"appears to meet"* / *"requirements pending"* — never
-  "eligible" or "approved".
+- "Ask Karobaar" -> bounded intent/month guards (model classification only for remaining financial paraphrases) -> existing SQL tool -> **deterministic wording**. A model cannot rewrite the monetary answer.
+- Financing provides references and manual checks, not a qualification decision. Unsupported sales/history/receipt thresholds have been removed from the catalogue.
 
 ## Tech stack
 
@@ -26,14 +25,14 @@ The LLM never performs arithmetic and never writes to the ledger directly:
 |---|---|
 | API | FastAPI + Pydantic v2 (OpenAPI at `/docs`) |
 | DB | SQLAlchemy 2.0 ORM + SQLite (Postgres-ready via `DATABASE_URL`) |
-| AI — first priority | **Groq** — `qwen/qwen3-32b` (text/JSON), `whisper-large-v3-turbo` (audio), `meta-llama/llama-4-scout-17b-16e-instruct` (receipt vision) |
-| AI — fallback | **Google Gemini** — `gemini-2.5-flash` (text, vision, audio) |
-| AI — floor | **Demo provider** — deterministic rule-based parser, never fails |
+| AI — first priority | **Groq** — configured text/JSON and Whisper audio; receipt calls intentionally fall through |
+| AI — fallback | **Google Gemini** — configured text, vision and audio; current live receipt path |
+| AI — floor | **Demo provider** — deterministic parser, canned audio transcript and incomplete receipt draft |
 
 Per-call fallback chain: `Groq -> Gemini -> Demo`. A rate-limited Groq call silently
 routes to Gemini for that one request; malformed model JSON gets one repair retry on
 the same provider before moving down the chain. With no API keys at all, the whole
-product still runs end-to-end in demo mode.
+product can be explored in demo mode. That does not prove live recognition works. The UI distinguishes Demo AI capture from rule-based ledger answers. Capture still needs merchant review; chatbot grammar is intentionally bounded.
 
 ## Quickstart
 
@@ -48,7 +47,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 - Swagger UI: http://localhost:8000/docs
-- On first start the DB is created and auto-seeded with a deterministic 3.5-month
+- On first **local development** start the DB is created and auto-seeded with a deterministic 3.5-month
   kiryana-store dataset (63 events, 5 customers) so every screen has data immediately.
 
 ## Configuration (`.env`)
@@ -58,12 +57,14 @@ uvicorn app.main:app --reload --port 8000
 | `AI_PROVIDER` | `auto` | `auto` \| `groq` \| `gemini` \| `demo` |
 | `GROQ_API_KEY` | *(empty)* | Groq key (from console.groq.com) |
 | `GEMINI_API_KEY` | *(empty)* | Google AI Studio key |
-| `GROQ_TEXT_MODEL` | `qwen/qwen3-32b` | extraction / question / answer model |
+| `GROQ_TEXT_MODEL` | `qwen/qwen3.8-27b` | extraction / remaining question classification; verify provider availability before deploying |
 | `GROQ_AUDIO_MODEL` | `whisper-large-v3-turbo` | transcription |
-| `GROQ_VISION_MODEL` | `meta-llama/llama-4-scout-17b-16e-instruct` | receipt OCR |
-| `GEMINI_MODEL` | `gemini-2.5-flash` | fallback for all capabilities |
+| `GROQ_VISION_MODEL` | `groq/compound` | retained configuration; does not implement Groq receipt recognition |
+| `GEMINI_MODEL` | `gemini-3.6-flash` | current code default; verify provider availability before deploying |
 | `DATABASE_URL` | `sqlite:///./karobaar.db` | any SQLAlchemy URL |
-| `UPLOADS_DIR_PATH` | `uploads` | receipt evidence storage |
+| `UPLOADS_DIR_PATH` | `uploads` | private receipt storage, including `.owners/` metadata; both must persist |
+| `RECEIPT_STORAGE` | `local` | cloud deployment requires `vercel_blob`; no filesystem fallback on storage failure |
+| `BLOB_STORE_ID` | *(empty)* | connected private Vercel Blob store; cloud uses request-scoped OIDC, not client tokens |
 | `CORS_ORIGINS` | `http://localhost:3000,...` | comma-separated frontend origins |
 | `AUTO_SEED` | `true` | seed the demo dataset when the DB is empty |
 | `REQUIRE_AUTH` | `false` | set `true` in production to require a verified Supabase access token |
@@ -72,46 +73,47 @@ uvicorn app.main:app --reload --port 8000
 
 ## API
 
-All routes are under `/api`. Money crosses the API as **integer paisa**
-(1 PKR = 100 paisa) plus a ready-to-render `*_display` string.
+All routes are under `/api`. Canonical endpoints use **integer paisa**
+(1 PKR = 100 paisa) plus ready-to-render `*_display` strings. The frontend bridge accepts decimal PKR, validates at most two decimal places and converts once to integer paisa through the same confirmation service.
 
 | Method & Path | Purpose |
 |---|---|
-| `GET /api/health` | Liveness; `?verify=true` pings every provider |
+| `GET /api/health` | Cheap liveness/configuration only; `?verify=true` returns 403, with no paid call |
 | `POST /api/capture/transcribe` | Audio (multipart) -> transcript (Whisper) |
 | `POST /api/capture/extract` | Transcript/text -> reviewable draft event (nothing saved) |
-| `POST /api/capture/extract-receipt` | Receipt photo (multipart) -> draft + evidence saved to `uploads/` |
+| `POST /api/capture/extract-receipt` | Receipt photo (multipart, max 4 MB) -> draft + private evidence; local owner registry or cloud Blob |
 | `POST /api/events` | **Confirm** a draft/manual event into the ledger |
 | `GET /api/events` | List with filters: `event_type, customer_id, payment_status, source_type, from, to, limit, offset` |
 | `GET /api/events/{id}` / `PATCH` / `DELETE` | Read / edit amount-date-notes / remove |
 | `GET /api/customers` / `GET /api/customers/{id}` | Udhaar book (biggest debtor first) / full statement |
 | `GET /api/dashboard` | One call for the whole home screen |
 | `GET /api/ask/suggestions` | Starter questions + supported tools |
-| `POST /api/ask` | Ask Karobaar (interpret -> SQL tool -> phrase) |
+| `POST /api/ask` | Ask Karobaar (guarded interpretation -> SQL tool -> deterministic answer); question length 2–500 after trimming |
 | `GET /api/evidence/passport` | Financial Evidence Passport |
-| `GET /api/financing/programs` | 5 source-backed Pakistani financing programs |
-| `GET /api/financing/readiness` | Metric requirements matched/missing; manual ones = next steps |
+| `GET /api/evidence/files/{filename}` | Upload-owner + confirmed-attachment checks; generic 404 on unauthorized or missing files |
+| `GET /api/financing/programs` | Five Pakistani financing reference links; numerical loan terms are not asserted |
+| `GET /api/financing/readiness` | `reference_only`, no matched/missing numerical thresholds; manual topics to confirm |
+| `GET /api/combined` | Shared product snapshot: summary, latest 200 entries, full-history customers, dashboard, passport and source counts |
+| `POST /api/ledger/events` | Typed frontend confirmation bridge; decimal PKR → canonical paisa |
 | `POST /api/reminders/draft` | AI-drafted payment reminder (merchant edits & sends) |
-| `POST /api/demo/seed` / `POST /api/demo/reset` | Load / wipe the demo dataset |
+| `POST /api/demo/seed` / `POST /api/demo/reset` | Local-only demo controls; both return 403 on cloud deployments |
 
 Error envelope: `{"error": {"type": "not_found" | "validation_error" | "ai_unavailable" | ..., "message": "..."}}`
 with status 404 / 422 / 503.
 
 ## Deterministic domain rules
 
-- **Money** is integer paisa end-to-end; floats exist only at the AI boundary and are
-  converted exactly once (`rupees_to_paisa`).
+- **Money** is stored and computed as integer paisa. Canonical APIs use paisa; the product bridge uses validated decimal PKR. Browser display values are not the accounting authority.
 - **FIFO udhaar settlement** — `recompute_customer_settlement()` replays every confirmed
   payment against that customer's credit sales oldest-first. Create/update/delete all
-  funnel through it, so balances can never drift. A "mark paid" button does not exist:
+  funnel through it. A "mark paid" button does not exist:
   the merchant records a `payment_received` event instead.
 - **Only confirmed events** count in every metric, passport figure, and Ask answer.
 - **Duplicates** are flagged (same type + customer + amount + date) before saving.
 - **PKT timezone** (UTC+5) drives every "today", month bucket, and overdue decision
-  (> 30 days unpaid = overdue).
+  (30 or more days unpaid = overdue).
 - **Ask Karobaar tools** are SQL-backed (`total_outstanding`, `top_debtor`,
-  `monthly_sales`, `sales_comparison`, `customer_outstanding`); unknown intents get an
-  honest "I can't answer that" plus suggestions.
+  `monthly_sales`, `sales_comparison`, `customer_outstanding`). Recognized English/Roman Urdu/Urdu questions use rules; remaining debt paraphrases can use a strictly validated classifier. Invalid/future months are not silently changed to this month. Sales comparisons mean one calendar month versus its immediate predecessor; balances are current/all-time. Unknown customers, unsupported periods and unsupported tools get clarification, not a guessed amount. `answer_source=deterministic_ledger` identifies the bounded renderer; unsupported replies contain no ledger amount.
 - The **Passport** reports qualitative labels (recovery pattern, revenue consistency,
   customer concentration) — explicitly not a credit score.
 
@@ -140,19 +142,39 @@ Backend/
 ## Testing
 
 ```bash
-pytest            # 74 tests; fully offline (demo provider, in-memory SQLite)
+pytest            # 195 tests; fully offline (demo provider, in-memory SQLite, mocked Blob)
 python scripts/eval_extractor.py   # extraction accuracy against the live chain
+python -m scripts.check_providers  # explicit paid checks; prints no raw provider errors
+python -m scripts.release_preflight --database # read-only TLS/RLS/grants inspection
+python -m scripts.release_preflight --providers # bounded paid text extraction checks
 ```
 
 Tests pin the seed dataset's designed outcomes: total outstanding **Rs 100,000**,
 top debtor **Ahmed Rs 58,500** (oldest unpaid 45 days = overdue), credit sales
 **Rs 198,000**, recovered **Rs 98,000 (~49.5%)**.
 
+The regional checkpoints add 121 regressions to the original 74: bridge validation/precision/provenance, >200-row balances, frozen-clock question guards, upload ownership, evidence claims and cloud release safeguards. The original question audit passes 26/26. These offline checks do not verify deployed authentication or real cloud storage. Gemini text and synthetic English receipt extraction were checked separately; real microphone/Urdu photo quality remains unverified. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md).
+
+## Receipt ownership and existing files
+
+In local mode, both upload routes record the merchant in private `uploads/.owners/<filename>.json` before returning a draft. In cloud mode, the server creates an immutable `receipts/<sha256 merchant>/<uuid filename>` namespace in private Vercel Blob. Both confirmation routes check ownership **before any customer/event write**. Reading also requires that owner's confirmed ledger attachment. A guessed or copied filename is not proof of ownership. Browser requests never choose a Blob URL or storage token.
+
+Unregistered legacy images are preserved, but reads/new attachments fail closed. An operator must verify the original uploader from trusted records, then explicitly register one file:
+
+```powershell
+python -m scripts.register_evidence_owner --filename ORIGINAL_UUID.png --merchant-id VERIFIED_USER_UUID
+# Dry-run by default. Only after checking ownership:
+python -m scripts.register_evidence_owner --filename ORIGINAL_UUID.png --merchant-id VERIFIED_USER_UUID --apply
+```
+
+This local-only operation never overwrites a registered owner or changes ledger rows. Back up images **together with `.owners`**; do not expose the directory as static public files. Legacy local images are not automatically migrated to Blob. Upload signature validation and general orphan cleanup remain tracked work.
+
 ## Deployment
 
-`render.yaml` deploys to Render (free plan): `uvicorn app.main:app --host 0.0.0.0 --port $PORT`,
-health check on `/api/health`. Set `GROQ_API_KEY` / `GEMINI_API_KEY`, `SUPABASE_URL`,
-and `SUPABASE_JWT_SECRET` in the dashboard; `CORS_ORIGINS` must list your frontend URL.
-The blueprint enables `REQUIRE_AUTH=true` for production. On the free plan the SQLite file is
-ephemeral (re-seeded per deploy) — attach a disk or set `DATABASE_URL` to a managed
-Postgres for persistence.
+The active repository-root `vercel.json` defines Next.js and FastAPI services under one domain; Python is pinned to 3.12. See the [Vercel deployment plan](../docs/VERCEL_DEPLOYMENT_PLAN.md) for current configuration and remaining release gates. Vercel/production startup rejects authentication-off, SQLite, auto-seeding or local-receipt settings. It never creates/seeds remote tables. The existing Supabase schema must already be provisioned.
+
+Cloud Postgres verifies certificates using Supabase's public CA from Database Settings (not a credential), a bounded connection timeout, and a one-connection pool. The read-only preflight confirmed TLS, both tables' RLS, no browser-access policies, and zero visible rows for anon/authenticated roles. The current backend DB role bypasses RLS; replace it with a least-privilege role in follow-up work. No remote policies or records were changed.
+
+Cloud snapshots skip the process-local cache. API responses use `private, no-store`; AI failure responses do not echo provider internals. Voice/receipt uploads are capped at 4 MB to leave multipart headroom below Vercel's request limit. Actual hosted upload sizes and Blob OIDC/persistence still need end-to-end checks. The installed Python dependency audit is clean after PyJWT/urllib3 patches; that is not an overall security certification.
+
+`render.yaml` is an older reference blueprint, not a release-ready alternative: its development SQLite/auto-seed assumptions must not be used for public merchant data. This release targets Vercel; do not deploy that blueprint unchanged. Keep the verified [local booth fallback](../docs/REGIONAL_DEMO_RUNBOOK.md).

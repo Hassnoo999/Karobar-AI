@@ -25,6 +25,7 @@ from app.schemas.events import (
     VerificationStatus,
 )
 from app.services.money import format_pkr, rupees_to_paisa
+from app.services.evidence_storage import assert_receipt_owned
 
 CONFIRMED = VerificationStatus.confirmed.value
 OUTSTANDING = PaymentStatus.outstanding.value
@@ -155,6 +156,11 @@ def confirm_event(db: Session, payload: EventCreate, merchant_id: str = "demo") 
         raise DomainValidationError("occurred_at is too far in the past (max 2 years)")
     if payload.customer_id is None and not (payload.counterparty or "").strip() and payload.event_type.value in _CUSTOMER_TYPES:
         raise DomainValidationError(f"a {payload.event_type.value} event requires a customer (customer_id or counterparty)")
+
+    # Check before any customer creation or event mutation. An event referencing
+    # a filename must never be able to establish ownership of that file.
+    if payload.evidence_filename is not None:
+        assert_receipt_owned(payload.evidence_filename, merchant_id)
 
     customer: Customer | None = None
     created = False

@@ -21,14 +21,16 @@ from app.schemas.events import (
     SourceType,
 )
 from app.services.ledger import confirm_event, delete_event, event_to_out, update_event
+from app.services.product_cache import invalidate_product_cache
 
 router = APIRouter(prefix="/events", tags=["events"])
 
 
 @router.post("", response_model=EventOut, status_code=status.HTTP_201_CREATED)
-async def create_event(payload: EventCreate, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def create_event(payload: EventCreate, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     """Confirm a draft (or a manual entry) into the ledger — the only write path."""
     event, _created_customer = confirm_event(db, payload, merchant_id=merchant_id)
+    invalidate_product_cache(merchant_id)
     return event_to_out(event)
 
 
@@ -92,9 +94,12 @@ async def get_event(event_id: int, db: Session = Depends(get_db), merchant_id: s
 
 @router.patch("/{event_id}", response_model=EventOut)
 async def patch_event(event_id: int, payload: EventUpdate, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
-    return event_to_out(update_event(db, event_id, payload, merchant_id=merchant_id))
+    event = update_event(db, event_id, payload, merchant_id=merchant_id)
+    invalidate_product_cache(merchant_id)
+    return event_to_out(event)
 
 
 @router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_event(event_id: int, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     delete_event(db, event_id, merchant_id=merchant_id)
+    invalidate_product_cache(merchant_id)

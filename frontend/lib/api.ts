@@ -40,12 +40,18 @@ export type LedgerEvent = {
   amount: number | null;
   currency: string;
   date: string | null;
-  confidence: number;
-  source: "voice" | "photo";
+  confidence: number | null;
+  source: "voice" | "photo" | "manual" | "seed";
   raw_input: string;
   status: "validated" | "pending_validation";
   validation_notes: string[];
   evidence_filename?: string | null;
+  ai_provider?: string | null;
+  possible_duplicate?: boolean;
+  duplicate_of?: number | null;
+  notes?: string | null;
+  customer_id?: number | null;
+  remaining_amount?: number | null;
 };
 
 export type StoredLedgerEvent = LedgerEvent & {
@@ -123,6 +129,7 @@ export type AskResponse = {
   answer: string;
   tool_used: string;
   provider: string;
+  answer_source?: string;
   data: Record<string, unknown>;
 };
 
@@ -133,42 +140,75 @@ export type CombinedDataResponse = {
     evidence_profile: EvidenceProfile;
     financing_matches: FinancingMatch[];
   };
+  dashboard?: ProductDashboard;
+  customers?: ProductCustomer[];
+  passport?: ProductPassport;
+  source_counts?: Record<string, number>;
+};
+
+export type ProductCustomer = {
+  id: number;
+  name: string;
+  outstanding_paisa: number;
+  oldest_unpaid: string | null;
+  event_count: number;
+};
+
+export type ProductDashboard = {
+  today: string;
+  month: string;
+  overdue_total_paisa: number;
+  monthly_trend: { month: string; sales_paisa: number; expenses_paisa: number }[];
+};
+
+export type ProductPassport = {
+  history_months: number;
+  total_recorded_events: number;
+  total_sales_paisa: number;
+  total_recovered_paisa: number;
+  credit_sales_total_paisa: number;
+  recovery_rate_pct: number | null;
+  evidence_coverage_pct: number;
+  documentation_gaps: number;
+  customer_concentration_pct: number | null;
+  revenue_consistency: string;
+  monthly_sales?: {month: string; sales_paisa: number}[];
 };
 
 export type UnderstandingResponse = {
   capture: CaptureResponse;
-  provider: "alibaba" | "groq" | "demo";
+  provider: "alibaba" | "groq" | "gemini" | "demo";
   event: LedgerEvent;
 };
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") || "http://localhost:8000/api";
 
-/** Returns the current Supabase session token, or null.
- *  Caches the token in memory to avoid repeated getSession() calls. */
-let _cachedToken: string | null = null;
-let _cachedAt = 0;
-const _TOKEN_TTL = 300_000; // 5 minutes
-
+/** Read Supabase's current in-memory session; do not maintain a second token cache. */
 async function getAuthToken(): Promise<string | null> {
-  // Return cached token if still fresh
-  if (_cachedToken && Date.now() - _cachedAt < _TOKEN_TTL) return _cachedToken;
+  // Supabase already keeps the browser session in memory. Read the current
+  // session so account switches / token refreshes cannot reuse a stale token.
   try {
     const { supabase } = await import("@/lib/supabase");
     if (!supabase) return null;
     const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token ?? null;
-    if (token) { _cachedToken = token; _cachedAt = Date.now(); }
-    return token;
+    return data.session?.access_token ?? null;
   } catch {
     return null;
   }
 }
 
-/** Invalidate the cached auth token (e.g. after sign-out). */
-export function invalidateAuthToken(): void {
-  _cachedToken = null;
-  _cachedAt = 0;
+async function requestError(response: Response, action: string): Promise<Error> {
+  if (response.status === 401) return new Error("Your session has expired. Please sign in again.");
+  if (response.status === 403) return new Error("You do not have access to this record.");
+  let detail = "";
+  try {
+    const body = await response.json();
+    const candidate = body.detail ?? body.message ?? body.error?.message;
+    if (typeof candidate === "string") detail = candidate;
+    else if (Array.isArray(candidate)) detail = candidate.map((item: { msg?: string }) => item.msg).filter(Boolean).join(". ");
+  } catch { /* Response may not be JSON. */ }
+  return new Error(detail || `${action} (${response.status}). Please try again.`);
 }
 
 /** Build common headers (auth + content-type). */
@@ -187,7 +227,7 @@ async function getJson<T>(path: string): Promise<T> {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    throw await requestError(response, "Could not load your ledger");
   }
 
   return response.json() as Promise<T>;
@@ -223,6 +263,7 @@ export async function understandCapture(
   kind: "voice" | "receipt",
   file: File,
 ): Promise<UnderstandingResponse> {
+  if (file.size > 4 * 1024 * 1024) throw new Error("Captures must be under 4 MB. Use a smaller receipt or shorter voice note.");
   const formData = new FormData();
   formData.append("file", file);
 
@@ -234,7 +275,7 @@ export async function understandCapture(
   });
 
   if (!response.ok) {
-    throw new Error(`Understanding failed: ${response.status}`);
+    throw await requestError(response, "Could not understand this capture");
   }
 
   return response.json() as Promise<UnderstandingResponse>;
@@ -257,7 +298,7 @@ export async function saveLedgerEvent(event: LedgerEvent): Promise<StoredLedgerE
   });
 
   if (!response.ok) {
-    throw new Error(`Ledger save failed: ${response.status}`);
+    throw await requestError(response, "Could not save this entry");
   }
 
   return response.json() as Promise<StoredLedgerEvent>;
@@ -272,6 +313,7 @@ export async function getCombinedData(): Promise<CombinedDataResponse> {
 }
 
 export async function draftReminder(file: File): Promise<ReminderDraftResponse> {
+  if (file.size > 4 * 1024 * 1024) throw new Error("Voice notes must be under 4 MB. Try a shorter recording.");
   const formData = new FormData();
   formData.append("file", file);
 
@@ -298,7 +340,7 @@ export async function askQuestion(question: string): Promise<AskResponse> {
   });
 
   if (!response.ok) {
-    throw new Error(`Ask failed: ${response.status}`);
+    throw await requestError(response, "Could not answer this question");
   }
 
   return response.json() as Promise<AskResponse>;

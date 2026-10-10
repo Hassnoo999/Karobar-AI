@@ -1,5 +1,6 @@
 import { ProductShell } from "@/components/product/ProductShell";
+import { ProductDataProvider } from "@/components/product/useProductData";
 
 export default function ProductLayout({ children }: { children: React.ReactNode }) {
-  return <ProductShell>{children}</ProductShell>;
+  return <ProductDataProvider><ProductShell>{children}</ProductShell></ProductDataProvider>;
 }

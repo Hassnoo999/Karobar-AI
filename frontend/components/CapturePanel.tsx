@@ -110,7 +110,7 @@ function CaptureStatus({ state }: { state: UploadState }) {
           </div>
           <div className="rounded-lg bg-blue/10 p-3">
             <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-blue/70">Confidence</p>
-            <p className="mt-1 text-sm font-bold text-blue">{Math.round(event.confidence * 100)}%</p>
+            <p className="mt-1 text-sm font-bold text-blue">{event.confidence == null ? "Not supplied" : `${Math.round(event.confidence * 100)}%`}</p>
           </div>
         </div>
       ) : null}

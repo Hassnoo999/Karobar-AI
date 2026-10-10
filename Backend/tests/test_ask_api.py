@@ -26,7 +26,8 @@ def test_total_outstanding_question(seeded_client):
     assert body["data"]["total_outstanding_paisa"] == TOTAL_OUTSTANDING_PAISA
     assert body["data"]["total_outstanding_display"] == "Rs 100,000"
     assert "Rs 100,000" in body["answer"]
-    assert body["provider"] == "demo"
+    assert body["provider"] == "rules"
+    assert body["answer_source"] == "deterministic_ledger"
 
 
 def test_top_debtor_question(seeded_client):

@@ -14,7 +14,8 @@ from app.auth import DEMO_MERCHANT
 from app.config import settings
 from app.data.seed import load_seed
 from app.db import SessionLocal, engine, init_db
-from app.errors import AIUnavailableError, DomainValidationError, KarobaarError, NotFoundError
+from app.errors import AIUnavailableError, DomainValidationError, KarobaarError, NotFoundError, StorageUnavailableError
+from app.deployment import validate_deployment
 from app.models import BusinessEvent
 from app.routers import ALL_ROUTERS
 
@@ -35,27 +36,17 @@ async def _warmup_db_pool():
             conn.close()
             logger.info("DB pool warmed (1 connection ready)")
         except Exception as exc:
-            logger.warning("DB pool warmup skipped: %s", exc)
+            logger.warning("DB pool warmup skipped (%s)", type(exc).__name__)
 
     loop = asyncio.get_event_loop()
     await loop.run_in_executor(None, _do_warmup)
 
 
-async def _warmup_gemini():
-    """Background task: hit Gemini API once at startup to avoid cold-start on first receipt."""
-    try:
-        from app.ai.adapter import get_adapter
-        adapter = get_adapter()
-        # A lightweight text call warms the Gemini connection
-        result = await adapter.extract_event_from_text("test warmup", __import__("datetime").date.today())
-        logger.info("Gemini warmup OK (provider=%s)", result.provider if hasattr(result, "provider") else "?")
-    except Exception as exc:
-        logger.warning("Gemini warmup skipped: %s", exc)
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    validate_deployment(settings)
+    if not settings.deployed:
+        init_db()
     if settings.auto_seed:
         db = SessionLocal()
         try:
@@ -67,11 +58,9 @@ async def lifespan(app: FastAPI):
                 load_seed(db, merchant_id=DEMO_MERCHANT)
         finally:
             db.close()
-    # Warm up DB pool and Gemini in the background so first requests are fast
-    warmup_gemini = asyncio.create_task(_warmup_gemini())
+    # A reload/startup must not make a paid model call.
     warmup_db = asyncio.create_task(_warmup_db_pool())
     yield
-    warmup_gemini.cancel()
     warmup_db.cancel()
 
 
@@ -93,6 +82,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def private_api_headers(request: Request, call_next):
+    # Vercel injects rotating OIDC request headers; the SDK reads a ContextVar.
+    # Each request (including concurrent requests) has its own credential scope.
+    from vercel.headers import set_headers
+    set_headers(dict(request.headers) if settings.deployed else None)
+    try:
+        response = await call_next(request)
+    finally:
+        set_headers(None)
+    if request.url.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "private, no-store"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
 for router in ALL_ROUTERS:
     app.include_router(router, prefix="/api")
 
@@ -112,12 +117,18 @@ async def _validation_handler(request: Request, exc: DomainValidationError) -> J
 
 @app.exception_handler(AIUnavailableError)
 async def _ai_unavailable_handler(request: Request, exc: AIUnavailableError) -> JSONResponse:
-    return _error(503, "ai_unavailable", str(exc))
+    # Upstream exceptions can contain request URLs, tokens or provider internals.
+    return _error(503, "ai_unavailable", "AI recognition is temporarily unavailable. Retry or enter the facts manually.")
 
 
 @app.exception_handler(ProviderError)
 async def _provider_error_handler(request: Request, exc: ProviderError) -> JSONResponse:
-    return _error(503, "ai_unavailable", str(exc))
+    return _error(503, "ai_unavailable", "AI recognition is temporarily unavailable. Retry or enter the facts manually.")
+
+
+@app.exception_handler(StorageUnavailableError)
+async def _storage_handler(request: Request, exc: StorageUnavailableError) -> JSONResponse:
+    return _error(503, "storage_unavailable", str(exc))
 
 
 @app.exception_handler(KarobaarError)

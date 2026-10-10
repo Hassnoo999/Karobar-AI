@@ -1,8 +1,4 @@
-"""Financing readiness and the Financial Evidence Passport.
-
-Language discipline is asserted literally: no response may claim "eligible",
-"approved", or "guaranteed" — only "appears to meet" / "requirements pending".
-"""
+"""Financial evidence stays exact; references must not imply qualification."""
 from __future__ import annotations
 
 import json
@@ -59,7 +55,9 @@ def test_readiness_partitions_every_requirement(seeded_client):
     for entry in readiness:
         program_requirement_count = len(entry["matched"]) + len(entry["missing"]) + len(entry["not_verifiable"])
         assert program_requirement_count >= 2
-        assert entry["overall"] in ("appears_relevant", "requirements_pending")
+        assert entry["overall"] == "reference_only"
+        assert entry["matched"] == []
+        assert entry["missing"] == []
         assert entry["summary_line"]
         assert entry["next_step"]
         # metric requirements carry evidence; manual ones carry a next step
@@ -68,38 +66,41 @@ def test_readiness_partitions_every_requirement(seeded_client):
             assert req["evidence_display"]
 
 
-def test_readiness_akhuwat_appears_relevant(seeded_client):
+def test_akhuwat_has_no_invented_sales_history_or_guarantor_threshold(seeded_client):
     readiness = seeded_client.get("/api/financing/readiness").json()
     akhuwat = _by_id(readiness, "akhuwat-family-enterprise-loan")
-    assert akhuwat["overall"] == "appears_relevant"
+    assert akhuwat["overall"] == "reference_only"
     assert akhuwat["missing"] == []
     matched_ids = {req["id"] for req in akhuwat["matched"]}
-    assert {"history", "sales"} <= matched_ids
+    assert matched_ids == set()
     # manual requirements are honestly reported as not verifiable by the ledger
     not_verifiable_ids = {req["id"] for req in akhuwat["not_verifiable"]}
-    assert "cnic" in not_verifiable_ids
+    assert not_verifiable_ids == {"identity", "business", "terms"}
+    assert akhuwat["program"]["loan_range"] is None
+    assert akhuwat["program"]["last_verified"] == ""
 
 
-def test_readiness_bop_and_hbl_pending(seeded_client):
+def test_bop_and_hbl_do_not_infer_business_age_from_recorded_history(seeded_client):
     readiness = seeded_client.get("/api/financing/readiness").json()
     bop = _by_id(readiness, "bop-e-business-qarza")
-    assert bop["overall"] == "requirements_pending"
+    assert bop["overall"] == "reference_only"
     missing_ids = {req["id"] for req in bop["missing"]}
-    assert "history" in missing_ids  # 12 months needed, seed has ~4-5
+    assert missing_ids == set()
+    assert {req["id"] for req in bop["not_verifiable"]} == {"relationship", "applicant", "terms"}
 
     hbl = _by_id(readiness, "hbl-small-business-finance")
-    assert hbl["overall"] == "requirements_pending"
+    assert hbl["overall"] == "reference_only"
     missing_ids = {req["id"] for req in hbl["missing"]}
-    assert "history" in missing_ids  # 36 months needed, seed has ~4-5
-    assert "sales" in missing_ids  # avg monthly sales far below PKR 500,000
+    assert missing_ids == set()
 
 
-def test_readiness_pm_youth_pending_on_history(seeded_client):
+def test_pm_youth_does_not_claim_a_six_month_business_floor(seeded_client):
     readiness = seeded_client.get("/api/financing/readiness").json()
     pm_youth = _by_id(readiness, "pm-youth-business-agri-loan")
-    assert pm_youth["overall"] == "requirements_pending"
+    assert pm_youth["overall"] == "reference_only"
     missing_ids = {req["id"] for req in pm_youth["missing"]}
-    assert "history" in missing_ids  # 6 months needed, seed has ~4-5
+    assert missing_ids == set()
+    assert "6 months" not in json.dumps(pm_youth)
 
 
 def test_language_discipline_never_promises_approval(seeded_client):
@@ -108,4 +109,12 @@ def test_language_discipline_never_promises_approval(seeded_client):
     combined = json.dumps(readiness).lower() + json.dumps(passport).lower()
     for banned in ("eligible", "approved", "guaranteed", "credit score"):
         assert banned not in combined, f"forbidden phrase '{banned}' found in response"
-    assert "appears" in json.dumps(readiness).lower()  # hedged language is present
+    assert all(entry["overall"] == "reference_only" for entry in readiness)
+
+
+def test_catalogue_contains_no_unverified_numeric_rules():
+    from app.services.matching import load_programs
+    for program in load_programs():
+        assert program["loan_range"] is None
+        assert all(req["type"] == "manual" for req in program["requirements"])
+        assert all("metric" not in req and "value" not in req for req in program["requirements"])

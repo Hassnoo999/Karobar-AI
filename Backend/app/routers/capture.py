@@ -5,25 +5,23 @@ merchant confirms it via POST /api/events.
 """
 from __future__ import annotations
 
-import uuid
-
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.orm import Session
 
 from app.ai import get_adapter
 from app.ai.base import ProviderError
 from app.auth import get_merchant_id
-from app.config import settings
 from app.db import get_db, pkt_today
 from app.errors import AIUnavailableError, DomainValidationError
 from app.schemas.capture import DraftEvent, ExtractTextRequest, TranscriptResponse
 from app.schemas.events import SourceType
 from app.services.ledger import build_draft
+from app.services.evidence_storage import discard_receipt, store_receipt
 
 router = APIRouter(prefix="/capture", tags=["capture"])
 
-MAX_AUDIO_BYTES = 20 * 1024 * 1024  # 20 MB
-MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_AUDIO_BYTES = 4 * 1024 * 1024  # leaves room for multipart on Vercel
+MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
 _IMAGE_EXTS = {
     "image/jpeg": ".jpg",
@@ -44,11 +42,11 @@ async def transcribe(
     file: UploadFile = File(..., description="Audio recording (webm, m4a, mp3, wav, ogg)"),
     _merchant_id: str = Depends(get_merchant_id),
 ):
-    audio = await file.read()
+    audio = await file.read(MAX_AUDIO_BYTES + 1)
     if not audio:
         raise DomainValidationError("audio file is empty")
     if len(audio) > MAX_AUDIO_BYTES:
-        raise DomainValidationError("audio file too large (max 20 MB)")
+        raise DomainValidationError("audio file too large (max 4 MB; use a short voice note)")
     mime = _mime(file)
     if not (mime.startswith("audio/") or mime == "video/webm"):
         raise DomainValidationError(f"unsupported audio content type: {mime or 'unknown'}")
@@ -86,23 +84,22 @@ async def extract_receipt(
     file: UploadFile = File(..., description="Receipt photo (jpg, png, webp, heic)"),
     merchant_id: str = Depends(get_merchant_id),
 ):
-    image = await file.read()
+    image = await file.read(MAX_IMAGE_BYTES + 1)
     if not image:
         raise DomainValidationError("image file is empty")
     if len(image) > MAX_IMAGE_BYTES:
-        raise DomainValidationError("image file too large (max 10 MB)")
+        raise DomainValidationError("image file too large (max 4 MB)")
     mime = _mime(file)
     if mime not in _IMAGE_EXTS:
         raise DomainValidationError(f"unsupported image content type: {mime or 'unknown'} (use jpg, png, webp or heic)")
 
-    filename = f"{uuid.uuid4().hex}{_IMAGE_EXTS[mime]}"
-    evidence_path = settings.uploads_dir / filename
-    evidence_path.write_bytes(image)
+    from starlette.concurrency import run_in_threadpool
+    filename = await run_in_threadpool(store_receipt, image, _IMAGE_EXTS[mime], merchant_id)
 
     try:
         extraction = await get_adapter().extract_event_from_image(image, mime, pkt_today())
     except ProviderError as exc:
-        evidence_path.unlink(missing_ok=True)
+        await run_in_threadpool(discard_receipt, filename, merchant_id)
         raise AIUnavailableError(str(exc)) from exc
     return build_draft(
         db,

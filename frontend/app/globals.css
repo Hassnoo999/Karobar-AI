@@ -71,6 +71,55 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .product-shell { font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
 .product-shell h1, .product-shell h2, .product-shell h3, .product-shell p { letter-spacing: 0; }
 
+/* Product-only design system: offline-safe fonts, calmer hierarchy, shared controls. */
+@layer components {
+.product-shell { --product-ink: #153b30; --product-muted: #667b72; --product-border: #e0e8e2; background: #f3f6f2; color: var(--product-ink); }
+.product-shell h1 { font-size: clamp(1.65rem, 2.6vw, 2.15rem); line-height: 1.18; font-weight: 600; letter-spacing: -.045em; }
+.product-shell h2 { font-size: 1rem; line-height: 1.5; font-weight: 600; letter-spacing: -.015em; }
+.page-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; }
+.ui-eyebrow { color: #6c7e71; font-size: .66rem; font-weight: 650; letter-spacing: .13em !important; text-transform: uppercase; margin-bottom: .6rem; }
+.ui-description { color: var(--product-muted); font-size: .875rem; line-height: 1.6; margin-top: .6rem; max-width: 48rem; }
+.ui-card { background: #fff; border: 1px solid var(--product-border); border-radius: 16px; box-shadow: 0 3px 14px rgba(21,59,48,.018); }
+.ui-label { font-size: .8rem; font-weight: 600; color: #50675b; }
+.ui-muted { color: var(--product-muted); }
+.ui-button-primary, .ui-button-secondary, .ui-button-quiet { display: inline-flex; align-items: center; justify-content: center; gap: .55rem; min-height: 44px; border-radius: 10px; padding: .65rem 1rem; font-size: .8rem; font-weight: 600; line-height: 1.4; transition: background .16s, border-color .16s, transform .16s; }
+.ui-button-primary { background: #0c4b38; color: #fff; border: 1px solid #0c4b38; }
+.ui-button-primary:hover { background: #126145; border-color: #126145; }
+.ui-button-secondary { background: #fff; border: 1px solid #d8e2da; color: #294e3d; }
+.ui-button-secondary:hover { background: #f1f7f2; border-color: #adc8b6; }
+.ui-button-quiet { color: #416450; padding-inline: .65rem; }
+.ui-button-quiet:hover { background: #e9f0e9; }
+.product-shell button:disabled { cursor: not-allowed; opacity: .45; }
+.ui-badge { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem .55rem; border-radius: 6px; font-size: .7rem; font-weight: 600; line-height: 1.5; white-space: nowrap; }
+.badge-neutral { background: #f0f4f0; color: #586e60; }
+.badge-green { background: #e4f4e9; color: #1b6c45; }
+.badge-amber { background: #fff4dd; color: #8b661d; }
+.badge-coral { background: #fff0eb; color: #ae5140; }
+.metric-card { padding: 1.15rem 1.25rem; }
+.metric-icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; }
+.tone-green { background: #e9f6ed; color: #26704c; }
+.tone-coral { background: #fff0eb; color: #b75a45; }
+.tone-amber { background: #fff6df; color: #967021; }
+.tone-blue { background: #edf2fa; color: #5b77a0; }
+.metric-value { margin: 1rem 0 .35rem; font-size: clamp(1.25rem, 2.05vw, 1.7rem); font-weight: 650; letter-spacing: -.025em !important; font-variant-numeric: tabular-nums; }
+.ui-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2.75rem 1.5rem; text-align: center; }
+.ui-empty h3 { font-size: .95rem; font-weight: 600; margin-top: 1rem; }
+.ui-empty p { color: var(--product-muted); font-size: .8rem; line-height: 1.6; margin-top: .35rem; max-width: 24rem; }
+.ui-field { display: block; color: #4e6656; font-size: .75rem; font-weight: 600; }
+.ui-input { display: block; width: 100%; min-height: 46px; border: 1px solid #d6e2d9; border-radius: 9px; background: #fff; padding: .7rem .8rem; font-size: .875rem; color: #193e2d; margin-top: .45rem; font-weight: 400; }
+.ui-input:focus { border-color: #41976b; }
+.ui-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.15rem 1.35rem; border-bottom: 1px solid #edf1ed; }
+.ui-section-heading p { color: var(--product-muted); font-size: .75rem; margin-top: .25rem; }
+.product-shell input, .product-shell textarea, .product-shell select { scroll-margin: 100px; }
+.product-shell :focus-visible { outline: 3px solid #6aaa86; outline-offset: 3px; }
+@media (max-width: 639px) {
+  .page-heading { align-items: flex-start; flex-wrap: wrap; margin-bottom: 1.1rem; }
+  .metric-card { padding: .9rem; }
+  .metric-value { margin-top: .7rem; font-size: 1.23rem; }
+  .ui-section-heading { padding: 1rem; }
+}
+}
+
 @keyframes route-progress {
   0% { transform: translateX(-110%); }
   55% { transform: translateX(80%); }

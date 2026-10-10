@@ -1,8 +1,4 @@
-"""Ask Karobaar: the LLM picks a tool; SQL computes the numbers; the LLM only phrases.
-
-Every tool returns exact values from the confirmed ledger. The answer composer
-(LLM) is only ever given these numbers — it can never invent or calculate.
-"""
+"""Existing read-only tools: exact values from the confirmed merchant ledger."""
 from __future__ import annotations
 
 import re
@@ -17,6 +13,7 @@ from app.schemas.events import EventType
 from app.services.ledger import CONFIRMED, customer_outstanding_paisa, customer_oldest_unpaid, find_customer_by_name
 from app.services.metrics import SALE_TYPES, sum_events, top_debtor_row
 from app.services.money import format_pkr
+from app.errors import DomainValidationError
 
 SUPPORTED_TOOLS = (
     "total_outstanding",
@@ -37,9 +34,11 @@ _MONTH_RE = re.compile(r"^\d{4}-(0[1-9]|1[0-2])$")
 
 
 def _valid_month(value: Any, today: date) -> str:
-    if isinstance(value, str) and _MONTH_RE.match(value.strip()):
+    if value is None:
+        return month_key(today)
+    if isinstance(value, str) and _MONTH_RE.fullmatch(value.strip()) and value.strip()[:4] != "0000":
         return value.strip()
-    return month_key(today)
+    raise DomainValidationError("month must be a valid YYYY-MM calendar month")
 
 
 # --- Tools (all deterministic, all SQL-backed) ---------------------------------
@@ -91,6 +90,8 @@ def tool_monthly_sales(db: Session, month_arg: Any, today: date, merchant_id: st
 
 def tool_sales_comparison(db: Session, month_arg: Any, today: date, merchant_id: str = "demo") -> dict[str, Any]:
     month = _valid_month(month_arg, today)
+    if month == "0001-01":
+        raise DomainValidationError("this month has no supported preceding calendar month")
     current = _month_sales(db, month, merchant_id=merchant_id)
     previous = _month_sales(db, prev_month_key(month), merchant_id=merchant_id)
     delta = current["sales_paisa"] - previous["sales_paisa"]

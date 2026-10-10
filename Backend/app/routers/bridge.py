@@ -28,6 +28,8 @@ from app.db import get_db, pkt_today
 from app.errors import AIUnavailableError, DomainValidationError
 from app.models import BusinessEvent, Customer
 from app.schemas.events import EventCreate, EventType, PaymentStatus, SourceType, VerificationStatus
+from app.schemas.product import ProductEventCreate
+from app.services.product_cache import combined_cache as _combined_cache
 from app.services.ledger import (
     confirm_event,
     customer_oldest_unpaid,
@@ -41,12 +43,12 @@ from app.services.metrics import dashboard_bundle
 from app.services.metrics import _fetch_confirmed_events, _fetch_customers
 from app.services.money import format_pkr
 from app.services.passport import compute_passport
+from app.routers.demo import require_local_demo
 
 router = APIRouter(tags=["bridge"])
 
 # In-memory cache for the combined endpoint (30 s TTL per merchant)
-_combined_cache: dict[str, tuple[float, dict]] = {}
-_CACHE_TTL = 30  # seconds
+_CACHE_TTL = 30  # local only; deployed instances cannot invalidate one another
 
 # ---------------------------------------------------------------------------
 # Type translation tables
@@ -76,29 +78,36 @@ _BE_EVENT_TYPE = {
 
 def _event_to_fe(event: BusinessEvent, customer_name: str | None) -> dict:
     """Convert a backend BusinessEvent to the frontend's StoredLedgerEvent shape."""
-    name = customer_name or (event.customer.display_name if event.customer else None)
-    et = _FE_EVENT_TYPE.get(event.event_type, "sale")
+    name = customer_name or getattr(event, "counterparty_raw", None)
+    be_type = event.event_type.value if hasattr(event.event_type, "value") else event.event_type
+    source = event.source_type.value if hasattr(event.source_type, "value") else event.source_type
+    et = _FE_EVENT_TYPE.get(be_type)
     return {
         "id": event.id,
         "event_type": et,
         "payment_type": "credit" if et in ("credit_given", "credit_received") else "cash",
-        "customer_name": name or "Walk-in",
+        "customer_name": name or ("Business expense" if et == "expense" else "Walk-in"),
         "amount": round(event.amount_paisa / 100, 2),
         "currency": "PKR",
         "date": event.occurred_at.isoformat(),
-        "confidence": event.ai_confidence or 0.9,
-        "source": "voice" if event.source_type in ("voice", "seed", "manual") else "photo",
+        "confidence": event.ai_confidence,
+        "source": "photo" if source == "receipt" else source,
         "raw_input": event.raw_input or "",
         "status": "validated",
         "validation_notes": [],
+        "customer_id": event.customer_id,
+        "remaining_amount": round((event.amount_paisa - event.settled_paisa) / 100, 2) if be_type == "credit_sale" else None,
+        "ai_provider": event.ai_provider,
+        "evidence_filename": event.evidence_filename,
+        "notes": event.notes,
         "created_at": event.created_at.isoformat() if event.created_at else datetime.now().isoformat(),
     }
 
 
 def _draft_to_fe_event(draft, raw_text: str | None = None) -> dict:
     """Convert a backend DraftEvent to the frontend's LedgerEvent shape."""
-    et = _FE_EVENT_TYPE.get(draft.event_type.value, "sale") if draft.event_type else "sale"
-    amount = round(draft.amount_paisa / 100, 2) if draft.amount_paisa else None
+    et = _FE_EVENT_TYPE.get(draft.event_type.value) if draft.event_type else None
+    amount = round(draft.amount_paisa / 100, 2) if draft.amount_paisa is not None else None
     missing = list(draft.missing_fields) if draft.missing_fields else []
     status = "validated" if not missing else "pending_validation"
     return {
@@ -107,13 +116,17 @@ def _draft_to_fe_event(draft, raw_text: str | None = None) -> dict:
         "customer_name": draft.customer_name or draft.counterparty or None,
         "amount": amount,
         "currency": "PKR",
-        "date": draft.occurred_at.isoformat() if draft.occurred_at else pkt_today().isoformat(),
-        "confidence": draft.confidence or 0.85,
-        "source": "voice" if draft.source_type in (SourceType.voice, SourceType.manual, "voice", "manual") else "photo",
+        "date": draft.occurred_at.isoformat() if draft.occurred_at else None,
+        "confidence": draft.confidence,
+        "source": "photo" if draft.source_type == SourceType.receipt else draft.source_type.value,
         "raw_input": draft.raw_input or raw_text or "",
         "status": status,
         "validation_notes": missing,
         "evidence_filename": draft.evidence_filename,
+        "ai_provider": draft.provider,
+        "possible_duplicate": draft.possible_duplicate,
+        "duplicate_of": draft.duplicate_of,
+        "notes": draft.notes,
     }
 
 
@@ -124,26 +137,7 @@ def _summary_from_dashboard(dash, *, record_count: int | None = None) -> dict:
     total_receivables = round(dash.outstanding_total_paisa / 100, 2)
     total_payables = round(dash.overdue_total_paisa / 100, 2)
 
-    recent = []
-    for ev in dash.recent_events:
-        name = ev.customer_name
-        be_event_type = ev.event_type.value if hasattr(ev.event_type, "value") else str(ev.event_type)
-        et = _FE_EVENT_TYPE.get(be_event_type, "sale")
-        recent.append({
-            "id": ev.id,
-            "event_type": et,
-            "payment_type": "credit" if et in ("credit_given", "credit_received") else "cash",
-            "customer_name": name or "Walk-in",
-            "amount": round(ev.amount_paisa / 100, 2),
-            "currency": "PKR",
-            "date": ev.occurred_at.isoformat(),
-            "confidence": ev.ai_confidence or 0.9,
-            "source": "voice" if ev.source_type.value in ("voice", "seed", "manual") else "photo",
-            "raw_input": ev.raw_input or "",
-            "status": "validated",
-            "validation_notes": [],
-            "created_at": ev.created_at.isoformat(),
-        })
+    recent = [_event_to_fe(ev, ev.customer_name) for ev in dash.recent_events]
 
     return {
         "total_sales": total_sales,
@@ -207,7 +201,7 @@ async def get_config():
 # POST /understand/voice  —  transcribe + extract in one call
 # ---------------------------------------------------------------------------
 
-MAX_AUDIO_BYTES = 20 * 1024 * 1024
+MAX_AUDIO_BYTES = 4 * 1024 * 1024
 
 
 @router.post("/understand/voice")
@@ -216,11 +210,11 @@ async def understand_voice(
     file: UploadFile = File(..., description="Audio recording"),
     merchant_id: str = Depends(get_merchant_id),
 ):
-    audio = await file.read()
+    audio = await file.read(MAX_AUDIO_BYTES + 1)
     if not audio:
         raise DomainValidationError("audio file is empty")
     if len(audio) > MAX_AUDIO_BYTES:
-        raise DomainValidationError("audio file too large (max 20 MB)")
+        raise DomainValidationError("audio file too large (max 4 MB; use a short voice note)")
     mime = (file.content_type or "audio/webm").split(";")[0].strip().lower()
     if not (mime.startswith("audio/") or mime == "video/webm"):
         raise DomainValidationError(f"unsupported audio type: {mime}")
@@ -270,7 +264,7 @@ async def understand_voice(
 # POST /understand/receipt  —  save image + extract in one call
 # ---------------------------------------------------------------------------
 
-MAX_IMAGE_BYTES = 10 * 1024 * 1024
+MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
 _IMAGE_EXTS = {
     "image/jpeg": ".jpg",
@@ -288,18 +282,19 @@ async def understand_receipt(
     file: UploadFile = File(..., description="Receipt photo"),
     merchant_id: str = Depends(get_merchant_id),
 ):
-    image = await file.read()
+    image = await file.read(MAX_IMAGE_BYTES + 1)
     if not image:
         raise DomainValidationError("image file is empty")
     if len(image) > MAX_IMAGE_BYTES:
-        raise DomainValidationError("image file too large (max 10 MB)")
+        raise DomainValidationError("image file too large (max 4 MB)")
     mime = (file.content_type or "").split(";")[0].strip().lower()
     if mime not in _IMAGE_EXTS:
         raise DomainValidationError(f"unsupported image type: {mime}")
 
-    filename = f"{uuid.uuid4().hex}{_IMAGE_EXTS[mime]}"
-    evidence_path = settings.uploads_dir / filename
-    evidence_path.write_bytes(image)
+    from app.services.evidence_storage import discard_receipt, store_receipt
+
+    from starlette.concurrency import run_in_threadpool
+    filename = await run_in_threadpool(store_receipt, image, _IMAGE_EXTS[mime], merchant_id)
 
     adapter = get_adapter()
     today = pkt_today()
@@ -307,7 +302,7 @@ async def understand_receipt(
     try:
         extraction = await adapter.extract_event_from_image(image, mime, today)
     except ProviderError as exc:
-        evidence_path.unlink(missing_ok=True)
+        await run_in_threadpool(discard_receipt, filename, merchant_id)
         raise AIUnavailableError(str(exc)) from exc
 
     from app.services.ledger import build_draft
@@ -383,44 +378,28 @@ async def ledger_events(db: Session = Depends(get_db), merchant_id: str = Depend
 
 
 @router.post("/ledger/events", status_code=201)
-async def save_ledger_event(payload: dict, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
-    be_type = _BE_EVENT_TYPE.get(payload.get("event_type"), "cash_sale")
-    amount = payload.get("amount") or 0
-    amount_paisa = round(float(amount) * 100)
-    if amount_paisa <= 0:
-        raise DomainValidationError("amount must be positive")
-
-    date_str = payload.get("date") or pkt_today().isoformat()
-    try:
-        occurred = date.fromisoformat(date_str)
-    except (ValueError, TypeError) as exc:
-        raise DomainValidationError(f"invalid date: {date_str}") from exc
-
-    counterparty = payload.get("customer_name") or None
-
-    # Ensure customer exists for credit types before calling confirm_event
-    customer_id = None
-    if be_type in ("credit_sale", "payment_received") and counterparty and counterparty.strip():
-        from app.services.ledger import get_or_create_customer
-
-        cust = get_or_create_customer(db, counterparty.strip(), merchant_id=merchant_id)
-        customer_id = cust.id
+def save_ledger_event(payload: ProductEventCreate, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+    be_type = _BE_EVENT_TYPE[payload.event_type]
+    # Input allows two decimal places, so this conversion is exact, not float rounding.
+    amount_paisa = int(payload.amount * 100)
+    counterparty = (payload.customer_name or "").strip() or None
 
     event_create = EventCreate(
         event_type=EventType(be_type),
-        customer_id=customer_id,
         counterparty=counterparty,
         amount_paisa=amount_paisa,
-        occurred_at=occurred,
+        occurred_at=payload.date,
         payment_status=(
             PaymentStatus.outstanding if be_type == "credit_sale"
             else PaymentStatus.paid if be_type in ("cash_sale", "expense")
             else None
         ),
-        source_type=SourceType.voice if payload.get("source") == "voice" else SourceType.receipt,
-        raw_input=payload.get("raw_input"),
-        ai_confidence=payload.get("confidence"),
-        evidence_filename=payload.get("evidence_filename"),
+        source_type=SourceType.receipt if payload.source == "photo" else SourceType(payload.source),
+        raw_input=payload.raw_input,
+        ai_confidence=payload.confidence,
+        ai_provider=payload.ai_provider,
+        evidence_filename=payload.evidence_filename,
+        notes=payload.notes,
     )
 
     event, _ = confirm_event(db, event_create, merchant_id=merchant_id)
@@ -434,6 +413,48 @@ async def save_ledger_event(payload: dict, db: Session = Depends(get_db), mercha
 # ---------------------------------------------------------------------------
 
 
+def _evidence_profile(passport) -> dict:
+    """Describe the same canonical facts on both bridge read endpoints."""
+    return {
+        "documentation_coverage": f"{passport.evidence_coverage_pct}% of confirmed activity includes a receipt attachment",
+        "income_consistency": f"Sales recorded across {passport.history_months} months — {passport.revenue_consistency}",
+        "receivable_discipline": (
+            f"{passport.recovery_rate_pct:.1f}% repayments relative to recorded credit sales"
+            if passport.recovery_rate_pct is not None else "No credit sales recorded yet"
+        ),
+        "expense_pattern": "Expense entries are recorded activity; cost patterns have not been established",
+        "customer_concentration": (
+            f"Largest customer's share of all recorded credit sales: {passport.customer_concentration_pct:.1f}%"
+            if passport.customer_concentration_pct is not None else "No credit customers yet"
+        ),
+        "ledger_depth": f"{passport.total_recorded_events} merchant-confirmed records across {passport.history_months} months; not independently audited",
+        "trust_notes": [
+            "Only confirmed entries count; sample and manual sources remain labeled",
+            "Attachments are not independently authenticated documents",
+            "No personalized financing fit or qualification is inferred",
+        ],
+    }
+
+
+def _financing_references(readiness) -> list[dict]:
+    """Legacy frontend shape retained; unsupported fit badges are removed."""
+    return [{
+        "program": {
+            "id": item.program.id, "name": item.program.program_name,
+            "institution": item.program.provider, "product_type": "small business finance reference",
+            "target_customer": item.program.target_user,
+            "eligibility_notes": "Reference only. Confirm current conditions directly with the institution; no personalized fit is inferred.",
+            "loan_range": "Confirm current amounts and terms with the institution",
+            "required_documents": [requirement.label for requirement in item.not_verifiable],
+            "source_url": item.program.source_url, "last_checked": item.program.last_verified,
+            "matching_hints": ["Official reference only; manual confirmation required"],
+        },
+        "relevance": "low", "match_reasons": [],
+        "gaps": [requirement.next_step or requirement.label for requirement in item.not_verifiable],
+        "grounded_summary": item.summary_line,
+    } for item in readiness]
+
+
 @router.get("/intelligence")
 async def intelligence(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     passport = compute_passport(db, merchant_id=merchant_id)
@@ -441,63 +462,8 @@ async def intelligence(db: Session = Depends(get_db), merchant_id: str = Depends
     dash = dashboard_bundle(db, merchant_id=merchant_id)
     summary = _summary_from_dashboard(dash, record_count=passport.total_recorded_events)
 
-    # Evidence profile: map passport qualitative labels to frontend strings
-    evidence_profile = {
-        "documentation_coverage": (
-            f"{passport.evidence_coverage_pct}% of confirmed activity includes a receipt attachment"
-        ),
-        "income_consistency": (
-            f"Sales recorded across {passport.history_months} months — {passport.revenue_consistency}"
-        ),
-        "receivable_discipline": (
-            f"{passport.recovery_rate_pct or 0:.0f}% of tracked udhaar recovered"
-            if passport.recovery_rate_pct is not None
-            else "No credit sales recorded yet"
-        ),
-        "expense_pattern": "Recurring supplier and utility costs are visible" if passport.total_recorded_events > 10 else "Limited expense data",
-        "customer_concentration": (
-            f"Top debtor represents {passport.customer_concentration_pct:.0f}% of receivables"
-            if passport.customer_concentration_pct is not None
-            else "No credit customers yet"
-        ),
-        "ledger_depth": f"{passport.total_recorded_events} verified records across {passport.history_months} months",
-        "trust_notes": [
-            "Merchant-confirmed entries only",
-            "Every record retains its source",
-            "No financing eligibility is invented",
-        ],
-    }
-
-    # Financing matches: map ProgramReadiness to frontend FinancingMatch shape
-    financing_matches = []
-    for result in readiness:
-        program = result.program
-        relevance = "high" if result.overall == "appears_relevant" else "medium"
-        match_reasons = [m.evidence_display or m.label for m in result.matched]
-        gaps = [m.next_step or m.label for m in result.missing] + [r.next_step or r.label for r in result.not_verifiable]
-
-        financing_matches.append({
-            "program": {
-                "id": program.id,
-                "name": program.program_name,
-                "institution": program.provider,
-                "product_type": "small business finance",
-                "target_customer": program.target_user,
-                "eligibility_notes": (
-                    "Your recorded data appears to meet some requirements. "
-                    "Final eligibility is confirmed by the financing institution."
-                ),
-                "loan_range": program.loan_range or "See program details",
-                "required_documents": [r.label for r in result.not_verifiable] or ["CNIC", "Business details"],
-                "source_url": program.source_url,
-                "last_checked": program.last_verified,
-                "matching_hints": match_reasons or ["documented sales", "business evidence"],
-            },
-            "relevance": relevance,
-            "match_reasons": match_reasons or ["Ledger activity recorded"],
-            "gaps": gaps or ["All verifiable requirements appear met"],
-            "grounded_summary": result.summary_line,
-        })
+    evidence_profile = _evidence_profile(passport)
+    financing_matches = _financing_references(readiness)
 
     return {
         "evidence_profile": evidence_profile,
@@ -517,11 +483,11 @@ async def reminder_draft(
     file: UploadFile = File(..., description="Voice command audio"),
     merchant_id: str = Depends(get_merchant_id),
 ):
-    audio = await file.read()
+    audio = await file.read(MAX_AUDIO_BYTES + 1)
     if not audio:
         raise DomainValidationError("audio file is empty")
     if len(audio) > MAX_AUDIO_BYTES:
-        raise DomainValidationError("audio file too large")
+        raise DomainValidationError("audio file too large (max 4 MB; use a short voice note)")
     mime = (file.content_type or "audio/webm").split(";")[0].strip().lower()
 
     adapter = get_adapter()
@@ -619,7 +585,7 @@ async def reminder_draft(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/demo/seed")
+@router.post("/demo/seed", dependencies=[Depends(require_local_demo)])
 async def demo_seed(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     load_seed(db, merchant_id=merchant_id)
     _combined_cache.pop(merchant_id, None)  # invalidate combined cache
@@ -651,7 +617,7 @@ async def combined_data(db: Session = Depends(get_db), merchant_id: str = Depend
     # Check cache first (skip DB work on cache hit)
     now = _time.time()
     cached = _combined_cache.get(merchant_id)
-    if cached and now - cached[0] < _CACHE_TTL:
+    if not settings.deployed and cached and now - cached[0] < _CACHE_TTL:
         return cached[1]
 
     # ── Fetch events + customers ONCE, reuse across all computations ──
@@ -673,67 +639,8 @@ async def combined_data(db: Session = Depends(get_db), merchant_id: str = Depend
     passport = compute_passport(db, merchant_id=merchant_id, _events=raw_events)
     readiness = evaluate_readiness(db, merchant_id=merchant_id, passport=passport)
 
-    evidence_profile = {
-        "documentation_coverage": (
-            f"{passport.evidence_coverage_pct}% of confirmed activity includes a receipt attachment"
-        ),
-        "income_consistency": (
-            f"Sales recorded across {passport.history_months} months — {passport.revenue_consistency}"
-        ),
-        "receivable_discipline": (
-            f"{passport.recovery_rate_pct or 0:.0f}% of tracked udhaar recovered"
-            if passport.recovery_rate_pct is not None
-            else "No credit sales recorded yet"
-        ),
-        "expense_pattern": (
-            "Recurring supplier and utility costs are visible"
-            if passport.total_recorded_events > 10
-            else "Limited expense data"
-        ),
-        "customer_concentration": (
-            f"Top debtor represents {passport.customer_concentration_pct:.0f}% of receivables"
-            if passport.customer_concentration_pct is not None
-            else "No credit customers yet"
-        ),
-        "ledger_depth": f"{passport.total_recorded_events} verified records across {passport.history_months} months",
-        "trust_notes": [
-            "Merchant-confirmed entries only",
-            "Every record retains its source",
-            "No financing eligibility is invented",
-        ],
-    }
-
-    financing_matches = []
-    for r in readiness:
-        program = r.program
-        relevance = "high" if r.overall == "appears_relevant" else "medium"
-        match_reasons = [m.evidence_display or m.label for m in r.matched]
-        gaps = (
-            [m.next_step or m.label for m in r.missing]
-            + [n.next_step or n.label for n in r.not_verifiable]
-        )
-        financing_matches.append({
-            "program": {
-                "id": program.id,
-                "name": program.program_name,
-                "institution": program.provider,
-                "product_type": "small business finance",
-                "target_customer": program.target_user,
-                "eligibility_notes": (
-                    "Your recorded data appears to meet some requirements. "
-                    "Final eligibility is confirmed by the financing institution."
-                ),
-                "loan_range": program.loan_range or "See program details",
-                "required_documents": [n.label for n in r.not_verifiable] or ["CNIC", "Business details"],
-                "source_url": program.source_url,
-                "last_checked": program.last_verified,
-                "matching_hints": match_reasons or ["documented sales", "business evidence"],
-            },
-            "relevance": relevance,
-            "match_reasons": match_reasons or ["Ledger activity recorded"],
-            "gaps": gaps or ["All verifiable requirements appear met"],
-            "grounded_summary": r.summary_line,
-        })
+    evidence_profile = _evidence_profile(passport)
+    financing_matches = _financing_references(readiness)
 
     result = {
         "summary": summary,
@@ -742,6 +649,28 @@ async def combined_data(db: Session = Depends(get_db), merchant_id: str = Depend
             "evidence_profile": evidence_profile,
             "financing_matches": financing_matches,
         },
+        # Reuse already fetched confirmed rows; no extra remote-DB round trips.
+        "dashboard": dash.model_dump(mode="json"),
+        "passport": passport.model_dump(mode="json"),
+        "customers": _product_customers(raw_events, customers),
+        "source_counts": {source: sum(ev.source_type == source for ev in raw_events) for source in ("voice", "receipt", "manual", "seed")},
     }
-    _combined_cache[merchant_id] = (_time.time(), result)
+    if not settings.deployed:
+        _combined_cache[merchant_id] = (_time.time(), result)
     return result
+
+
+def _product_customers(events: list[BusinessEvent], names: dict[int, str]) -> list[dict]:
+    """Expose settled balances from full history, never from the latest 200 rows."""
+    result = {cid: {"id": cid, "name": name, "outstanding_paisa": 0,
+                    "oldest_unpaid": None, "event_count": 0} for cid, name in names.items()}
+    for event in events:
+        customer = result.get(event.customer_id)
+        if customer is None:
+            continue
+        customer["event_count"] += 1
+        if event.event_type == "credit_sale" and event.amount_paisa > event.settled_paisa:
+            customer["outstanding_paisa"] += event.amount_paisa - event.settled_paisa
+            oldest = customer["oldest_unpaid"]
+            customer["oldest_unpaid"] = min(oldest, event.occurred_at.isoformat()) if oldest else event.occurred_at.isoformat()
+    return sorted(result.values(), key=lambda customer: (-customer["outstanding_paisa"], customer["name"].lower()))

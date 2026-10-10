@@ -1,8 +1,8 @@
-"""Financing readiness: match verified ledger metrics against published program requirements.
+"""Financing references and manual checks, without inferred qualification.
 
-Hard rule: we never say "eligible" or "approved" — only "appears to meet" /
-"requirements pending". Manual requirements (CNIC, age, registration) are shown
-as not-verifiable-with-next-step rather than pretending the ledger can check them.
+The previous unsourced ledger thresholds have been removed from the catalogue.
+Recorded-history length cannot establish actual business age. The metric matcher
+is retained for future explicitly verified rules, but is not used by today's data.
 """
 from __future__ import annotations
 
@@ -115,12 +115,14 @@ def evaluate_readiness(
                 not_verifiable.append(Requirement(**base, next_step=req.get("next_step")))
 
         verifiable_count = len(matched) + len(missing)
-        overall = "appears_relevant" if not missing else "requirements_pending"
+        overall = "reference_only" if not verifiable_count else "appears_relevant" if not missing else "requirements_pending"
         summary_line = (
             f"Your recorded data appears to meet {len(matched)} of {verifiable_count} "
             f"ledger-verifiable requirements. {len(not_verifiable)} requirement(s) need documents "
             f"Karobaar cannot verify — check them on the official source."
         )
+        if not verifiable_count:
+            summary_line = "Official reference only; no personalized fit is inferred. Confirm current requirements and terms with the institution."
         if missing:
             next_step = missing[0].next_step
         elif not_verifiable:

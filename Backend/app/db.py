@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
@@ -14,6 +15,15 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from app.config import settings
 
 PKT = timezone(timedelta(hours=5), name="Asia/Karachi")
+
+
+def managed_connect_args() -> dict:
+    """Verify the pooler's certificate and bound connection attempts."""
+    # Public Supabase CA downloaded from Database Settings on 10 October 2026.
+    # This is a trust certificate, not a private key or application credential.
+    return {"connect_timeout": 12, "sslmode": "verify-full",
+            "sslrootcert": str(Path(__file__).parent / "certs" / "supabase-root.crt")}
+
 
 _connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
 _pool_kwargs: dict = {}
@@ -29,6 +39,11 @@ if not settings.database_url.startswith("sqlite"):
         "pool_pre_ping": False,     # PgBouncer handles liveness; skip extra round-trip
         "pool_timeout": 30,         # wait up to 30s for a connection
     }
+    if settings.deployed:
+        _connect_args = managed_connect_args()
+        # Keep each short-lived cloud instance's pool small. The managed
+        # transaction pooler handles the overall connection fan-out.
+        _pool_kwargs.update(pool_size=1, max_overflow=0, pool_pre_ping=True, pool_timeout=12)
 engine = create_engine(settings.database_url, connect_args=_connect_args, **_pool_kwargs)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
 

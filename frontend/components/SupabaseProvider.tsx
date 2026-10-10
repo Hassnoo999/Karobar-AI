@@ -10,7 +10,6 @@ import {
 } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase, isAuthEnabled } from "@/lib/supabase";
-import { invalidateAuthToken } from "@/lib/api";
 
 interface AuthState {
   user: User | null;
@@ -74,7 +73,6 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
     if (supabase) {
       await supabase.auth.signOut();
     }
-    invalidateAuthToken();
     // Clear any dev session too
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("karobaar-demo-session");

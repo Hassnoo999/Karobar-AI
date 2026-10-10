@@ -102,8 +102,9 @@ def test_health(seeded_client):
     assert body["provider_chain"] == ["demo"]
     assert body["today"] == pkt_today().isoformat()
 
-    verified = seeded_client.get("/api/health", params={"verify": "true"}).json()
-    assert verified["providers"] == [{"name": "demo", "status": "ok"}]
+    verified = seeded_client.get("/api/health", params={"verify": "true"})
+    assert verified.status_code == 403
+    assert body["providers"] is None
 
 
 def test_root(client):

@@ -16,3 +16,7 @@ class DomainValidationError(KarobaarError):
 
 class AIUnavailableError(KarobaarError):
     """Every provider in the chain failed. -> 503"""
+
+
+class StorageUnavailableError(KarobaarError):
+    """Private evidence storage is unavailable. -> 503"""

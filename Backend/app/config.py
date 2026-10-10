@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
+import os
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -17,6 +18,12 @@ class Settings(BaseSettings):
     uploads_dir_path: str = "uploads"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
     auto_seed: bool = True
+    receipt_storage: str = "local"  # local booth / vercel_blob deployed receipts
+    blob_store_id: str = ""
+
+    @property
+    def deployed(self) -> bool:
+        return os.environ.get("VERCEL") == "1" or self.environment.lower() == "production"
 
     # --- Supabase / Auth ---------------------------------------------------
     supabase_url: str = ""
@@ -47,7 +54,8 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         raw = self.cors_origins or ""
         origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
-        return origins or ["*"]
+        # Empty means no cross-origin access, not an implicit public wildcard.
+        return origins
 
     def provider_chain(self) -> list[str]:
         """Resolve the ordered provider chain. The Demo provider is always the floor."""

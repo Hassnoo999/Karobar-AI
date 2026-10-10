@@ -1,8 +1,4 @@
-"""Financing program and readiness contracts.
-
-Language discipline: outputs say "appears to meet" / "requirements pending" —
-never "eligible", "approved", or "guaranteed".
-"""
+"""Financing references; recorded facts are not a qualification decision."""
 from __future__ import annotations
 
 from pydantic import BaseModel
@@ -39,7 +35,7 @@ class MissingRequirement(Requirement):
 
 class ProgramReadiness(BaseModel):
     program: ProgramSummary
-    overall: str  # appears_relevant | requirements_pending
+    overall: str  # reference_only | appears_relevant | requirements_pending
     summary_line: str
     matched: list[MatchedRequirement]
     missing: list[MissingRequirement]

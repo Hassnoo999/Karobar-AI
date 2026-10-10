@@ -1,7 +1,7 @@
-"""Health and readiness: app status plus optional live provider-chain verification."""
+"""Cheap public liveness. Paid provider checks belong to an operator CLI."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from app.ai import get_adapter
 from app.config import settings
@@ -11,8 +11,10 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-async def health(verify: bool = Query(False, description="Ping every provider in the chain (slow, costs a call)")):
-    """Cheap liveness check by default; `?verify=true` pings each configured provider."""
+async def health(verify: bool = Query(False, description="Deprecated: active checks are operator-only")):
+    """Provider configuration is not proof of provider availability."""
+    if verify:
+        raise HTTPException(status_code=403, detail="Active provider checks are disabled on HTTP. Use python -m scripts.check_providers on the backend host.")
     payload: dict[str, object] = {
         "status": "ok",
         "app": settings.app_name,
@@ -21,13 +23,4 @@ async def health(verify: bool = Query(False, description="Ping every provider in
         "provider_chain": get_adapter().chain_names(),
         "providers": None,
     }
-    if verify:
-        providers: list[dict[str, str]] = []
-        for provider in get_adapter().providers:
-            try:
-                await provider.ping()
-                providers.append({"name": provider.name, "status": "ok"})
-            except Exception as exc:  # noqa: BLE001 - a health check must never raise
-                providers.append({"name": provider.name, "status": "error", "detail": str(exc)})
-        payload["providers"] = providers
     return payload
