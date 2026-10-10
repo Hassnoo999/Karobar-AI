@@ -51,9 +51,11 @@ Use short voice notes and receipts below **4 MB**. Gemini passed one text and on
 
 ## What is proven, and what is still pending
 
-Current local checks: 165 backend tests, 26/26 original question-audit cases, 27 browser-story checks, 15 responsive route checks, TypeScript and production build pass. Test data was isolated from your team's live-test ledger.
+Current local checks: 196 backend tests, 26/26 original question-audit cases, 27 browser-story checks, 15 responsive route checks, TypeScript and production build pass. Test data was isolated from your team's live-test ledger.
 
-Still pending before a public demo: real Supabase sign-in and two-account isolation, exposed-database policies, live voice/OCR verification, durable cloud receipts and ownership, cloud upload-size handling, and save/read/reload across a deployment restart. The earlier submission deck still needs the regional screenshots/narrative update. See the [implementation ledger](REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) and [Vercel deployment plan](VERCEL_DEPLOYMENT_PLAN.md).
+The production app is at `https://project-4ps4k.vercel.app/`. Both services are live; real Supabase sign-in and an empty authenticated ledger load have passed. Missing/invalid tokens are rejected, paid public health checks are disabled, and read-only managed DB TLS/RLS checks passed. Hosted capture/persistence checks are in progress.
+
+Still pending before a full booth rehearsal: hosted two-account API/receipt isolation, real microphone/Urdu photo quality, durable cloud receipt upload/confirm/read and save/read/reload across a deployment restart. The earlier submission deck still needs the regional screenshots/narrative update. See the [implementation ledger](REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) and [Vercel deployment plan](VERCEL_DEPLOYMENT_PLAN.md); do not turn partial verification into an all-security-passed claim.
 
 ## Restarting the local test setup if needed
 

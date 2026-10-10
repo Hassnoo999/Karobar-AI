@@ -1,6 +1,6 @@
 # Deploy both Karobaar apps on Vercel
 
-Checked 10 October 2026. **Code pushed, credentials provisioned, production rebuild requested; hosted end-to-end verification remains pending.** The first deployment served the landing page at `https://project-4ps4k.vercel.app/` but returned API 500 before credentials were configured. Do not yet treat it as a usable full-stack demo. Chrome verifies the intended account; the connector is linked elsewhere. The user restored the paused original Supabase project; connectivity works. No remote records/policies, original environment files or paid-plan settings were changed by this release work.
+Checked 10 October 2026. **Both services are live; authenticated capture/persistence verification is in progress.** The production site is `https://project-4ps4k.vercel.app/`. After the verified driver pin, API health returns 200, missing/invalid tokens return 401, and the user's newly signed-in account loads an empty real ledger. Chrome verifies the intended account; the connector is linked elsewhere. The original Supabase project is restored, and approved production auth return URLs are configured. No existing merchant records/policies, original environment files or paid-plan settings were changed by this release work.
 
 ## Created and visibly verified
 
@@ -13,7 +13,9 @@ Checked 10 October 2026. **Code pushed, credentials provisioned, production rebu
 - Vercel's bulk `.env` input unexpectedly reset its initial type/scope selections. The four private variables briefly saved as Config in Production and Preview; each was corrected and the saved Secret/Production list visibly verified before the credential-enabled rebuild. No Preview deployment was requested. Values were not printed or committed; this scope correction is not a credential rotation.
 - The public Supabase URLs, same-origin `/api`, auth-required/no-seed/private-storage settings and exact production CORS origin are saved. A clean Production redeploy of `daad3ac` was requested with the latest settings.
 - This is **not yet a verified public demo**. Authenticated database/capture/receipt persistence still needs real hosted proof.
-- The credential-enabled build reported Ready but runtime logs exposed a SQLAlchemy driver mismatch (`psycopg` missing). Requirements now pin the locally tested 2.0.52, which matches the installed psycopg2 driver. Rebuild and runtime checks are required; build success alone is insufficient.
+- The first credential-enabled build exposed a SQLAlchemy driver mismatch (`psycopg` missing). Pushed fix `03a2a2e` pins the locally tested 2.0.52/psycopg2 stack; deployment `62ckvvXdUUdcPU5748ZTrMD9UauJ` reports Ready and actual runtime probes now pass.
+- The user signed up/signed in themselves. The new account loaded zero sales/expenses/udhaar from the actual API; no sample-preview fallback was used. Paid HTTP provider checks return 403, and responses carry `no-store, private`.
+- With explicit user approval, Supabase Site URL is the exact production origin and its sole additional redirect URL is `/signin` on that origin. Email-confirmation settings were not weakened; actual confirmation-email delivery was not tested.
 
 ## In simple words
 
