@@ -50,7 +50,7 @@ def _request(method: str, url: str, **kwargs) -> httpx.Response:
     except Exception as exc:
         # Neither URLs, OIDC credentials nor upstream response bodies enter logs.
         logger.warning("Private receipt operation unavailable (%s)", type(exc).__name__)
-        raise StorageUnavailableError("Private receipt storage is temporarily unavailable; no entry was saved") from exc
+        raise StorageUnavailableError("Private receipt storage is temporarily unavailable. Please try again.") from exc
 
 
 def _metadata(response: httpx.Response) -> dict:

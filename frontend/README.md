@@ -63,6 +63,8 @@ npm audit --omit=dev
 
 The five product screens now use a shared forest/mint design with responsive navigation, consistent controls and native keyboard-friendly dialogs. This pass verified the isolated local demo, not a production deployment or live Supabase session.
 
+Saved receipt-linked rows now have a **View receipt** action. The dialog loads through the authenticated API, supports original-image download and handles unavailable/unsupported previews. Closing, navigation or an account switch aborts pending reads and releases the temporary image URL. It does not publish a private storage link. TypeScript and the 11-page production build pass; hosted reopening is checked separately in the ledger.
+
 Production build, TypeScript and 15 responsive route checks pass. A 27-check local browser story covers review/confirmation, repayment, refreshed totals, named-month/Urdu questions, unsupported requests, reminder copy, filters/export and failure recovery. The backend's 211 tests and 26/26 question audit pass. Frontend production dependencies have no known vulnerabilities; eight development-tool findings remain tracked. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) for hosted results and remaining gates: two-user API isolation, actual voice/photo quality and cloud persistence. Do not treat offline checks as a public-release sign-off.
 
 The root `vercel.json` deploys both services together. Cloud frontend settings use `NEXT_PUBLIC_API_BASE_URL=/api` and the original Supabase public URL/anon key. Private database, JWT and AI keys belong only in server-side Vercel environment variables—never in a `NEXT_PUBLIC_` variable or GitHub.

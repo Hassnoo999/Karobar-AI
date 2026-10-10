@@ -3,6 +3,8 @@
 import { BookOpenCheck, ChevronLeft, ChevronRight, Download, Filter, Search, UsersRound, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { formatPKR } from "@/lib/product-data";
+import type { StoredLedgerEvent } from "@/lib/api";
+import { ReceiptViewer } from "./ReceiptViewer";
 import { useProductData } from "./useProductData";
 import { EmptyState, eventLabels, formatDate, PageHeading, SourceBadge } from "./ui";
 
@@ -18,6 +20,7 @@ export function LedgerScreen() {
   const [source, setSource] = useState("all");
   const [overdue, setOverdue] = useState(false);
   const [page, setPage] = useState(1);
+  const [receipt, setReceipt] = useState<StoredLedgerEvent | null>(null);
   const ready = connection === "live" || connection === "demo";
 
   useEffect(() => {
@@ -83,7 +86,7 @@ export function LedgerScreen() {
           <div className="min-w-0"><p className="truncate text-xs font-medium">{event.customer_name || "Walk-in"}</p><p className="mt-1 truncate text-[11px] text-[#627258]">Entry #{event.id}{event.ai_provider === "demo" ? " · Demo AI" : ""}</p></div>
           <p className={"col-start-1 row-start-2 text-xs md:col-auto md:row-auto " + (event.event_type === "expense" ? "text-[#a58b51]" : event.event_type === "credit_given" ? "text-[#867246]" : "text-[#588758]")}>{eventLabels[event.event_type ?? "sale"]}</p>
           <p className="col-start-1 row-start-3 text-[11px] text-[#627258] md:col-auto md:row-auto md:text-xs">{formatDate(event.date, {day: "numeric", month: "short", year: "numeric"})}</p>
-          <div className="col-start-2 row-start-2 justify-self-end md:col-auto md:row-auto md:justify-self-start"><SourceBadge source={event.source} provider={event.ai_provider} /></div>
+          <div className="col-start-2 row-start-2 flex flex-col items-end gap-1 md:col-auto md:row-auto md:items-start"><SourceBadge source={event.source} provider={event.ai_provider} />{event.evidence_filename && connection === "live" ? <button onClick={() => setReceipt(event)} disabled={!!receipt} aria-label={`View receipt for entry ${event.id}`} className="min-h-9 text-[11px] font-medium text-[#477343] underline underline-offset-2 hover:text-[#25452d]">View receipt</button> : null}</div>
           <p className="col-start-2 row-start-1 text-right text-xs font-semibold tabular-nums md:col-auto md:row-auto">{formatPKR(event.amount ?? 0)}{overdue && event.remaining_amount != null ? <span className="mt-1 block text-[11px] font-normal text-[#a97b59]">{formatPKR(event.remaining_amount)} unpaid</span> : null}</p>
         </div>)}</div>
       </> : <>
@@ -94,5 +97,6 @@ export function LedgerScreen() {
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#e8eee4] px-4 py-3 md:px-6"><p className="text-xs text-[#627258]">{total ? start + 1 : 0}–{Math.min(start + PAGE_SIZE, total)} of {total} {view === "transactions" ? "loaded entries" : "customers"}</p><div className="flex items-center gap-2"><button onClick={() => setPage(activePage - 1)} disabled={activePage <= 1} className="ui-button-secondary !min-h-10 !px-3" aria-label="Previous page"><ChevronLeft size={15} /></button><span className="px-1 text-xs text-[#627258]">{activePage} / {pageCount}</span><button onClick={() => setPage(activePage + 1)} disabled={activePage >= pageCount} className="ui-button-secondary !min-h-10 !px-3" aria-label="Next page"><ChevronRight size={15} /></button></div></div>
     </section>
     <p className="mt-4 text-xs leading-5 text-[#627258]">{summary.record_count > events.length ? "Showing the latest " + events.length + " of " + summary.record_count + " entries. Filters and entry export apply to these loaded rows. " : ""}Customer balances use the full confirmed history and FIFO settlement, not just this page.</p>
+    {receipt ? <ReceiptViewer entry={receipt} onClose={() => setReceipt(null)} /> : null}
   </div>;
 }

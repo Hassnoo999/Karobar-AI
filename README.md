@@ -8,7 +8,7 @@ Karobaar turns a merchant's voice notes and receipt photos into a reviewable fin
 
 Built for the Alibaba Cloud AI Hackathon Pakistan 2026, Financial Inclusion track.
 
-[Open the hosted app](https://project-4ps4k.vercel.app/) — requires a merchant account. Both frontend and API are deployed; real sign-in and ledger loading have been verified. Capture, receipt persistence and multi-account checks are tracked in the [deployment notes](docs/VERCEL_DEPLOYMENT_PLAN.md), not implied by the link alone.
+[Open the hosted app](https://project-4ps4k.vercel.app/) — requires a merchant account. Both services are deployed. Real sign-in, synthetic receipt extraction/confirmation, repayment and ledger-grounded answers have been checked. Receipt reopening and multi-account checks are tracked in the [deployment notes](docs/VERCEL_DEPLOYMENT_PLAN.md), not implied by the link alone.
 
 ## What we built
 
@@ -151,7 +151,7 @@ The repository intentionally excludes local databases, uploads, environment secr
 - The frontend production dependency audit and installed Python dependency audit report zero known vulnerabilities after compatible patches. Eight frontend development-tool findings remain tracked. These audits are not a security guarantee.
 - 15 desktop/tablet/mobile product-route checks and a 27-check browser story pass in an isolated local demo.
 
-Verified on 10 October 2026. The story covers confirm-once, credit/repayment, refreshed balances, named-month and Urdu customer questions, invalid/unsupported requests, editable reminder copy, filters/CSV and honest failure recovery. The original 26-question audit passes 26/26 (previously 12/26). Gemini correctly extracted a PKR 5,000 credit sale from text and a synthetic English receipt; Groq text requests were rate-limited (429). Real microphone/Urdu photo quality, deployed sessions, two-user API isolation and cloud persistence remain release gates. See the [implementation ledger](docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) and [booth runbook](docs/REGIONAL_DEMO_RUNBOOK.md). The submission deck still reflects the earlier UI and is scheduled for the next presentation checkpoint.
+Verified on 10 October 2026. The local story covers confirm-once, credit/repayment, refreshed balances, named-month and Urdu questions, unsupported requests, reminder copy, CSV and failure recovery. The original question audit passes 26/26 (previously 12/26). The actual hosted test account passed Gemini extraction/confirmation of one synthetic English PKR 5,000 credit receipt and a PKR 2,000 manual repayment: Ask and ledger agree on PKR 3,000 outstanding, with PKR 5,500 October sales including the separate PKR 500 cash test. That original cash entry survived redeployment. Groq text probes were rate-limited (429). Real microphone/Urdu photo quality, two-account isolation and durable receipt reopening remain separate checks. See the [implementation ledger](docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) and [booth runbook](docs/REGIONAL_DEMO_RUNBOOK.md). The earlier deck still needs its regional update.
 
 ## Scope boundary
 

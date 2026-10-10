@@ -51,11 +51,11 @@ Use short voice notes and receipts below **4 MB**. Gemini passed one text and on
 
 ## What is proven, and what is still pending
 
-Current local checks: 211 backend tests, 26/26 original question-audit cases, 27 browser-story checks, 15 responsive route checks, TypeScript and production build pass. Test data was isolated from your team's live-test ledger. Thirteen new cases cover a reproduced cloud concurrency failure; actual hosted verification follows the fix deployment.
+Current local checks: 211 backend tests, 26/26 original question-audit cases, 27 browser-story checks, 15 responsive route checks, TypeScript and production build pass. Test data was isolated from your team's live-test ledger. Thirteen cases cover a reproduced/fixed cloud concurrency failure; overlapping hosted reads and cash-entry persistence now pass. The new receipt viewer also passes the 11-page build.
 
-The production app is at `https://project-4ps4k.vercel.app/`. Both services are live; real Supabase sign-in and an empty authenticated ledger load have passed. Missing/invalid tokens are rejected, paid public health checks are disabled, and read-only managed DB TLS/RLS checks passed. Hosted capture/persistence checks are in progress.
+The production app is at `https://project-4ps4k.vercel.app/`. Both services are live; real sign-in and ledger writes/reads pass. In the fresh test account, Gemini extracted and confirmed a synthetic PKR 5,000 credit receipt; a manual PKR 2,000 repayment produces PKR 3,000 outstanding in ledger and Ask. October sales are PKR 5,500, including the separate PKR 500 cash test; repayment is not counted as new sales. Missing/invalid tokens are rejected, paid public health checks are disabled, and read-only managed DB TLS/RLS checks passed.
 
-Still pending before a full booth rehearsal: hosted two-account API/receipt isolation, real microphone/Urdu photo quality, durable cloud receipt upload/confirm/read and save/read/reload across a deployment restart. The earlier submission deck still needs the regional screenshots/narrative update. See the [implementation ledger](REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) and [Vercel deployment plan](VERCEL_DEPLOYMENT_PLAN.md); do not turn partial verification into an all-security-passed claim.
+Still pending: hosted two-account API/receipt isolation, real microphone/Urdu photo quality and reopening the private original after the viewer deployment. Cash-entry persistence across redeployment is verified; do not generalize it to every attachment/identity. The earlier deck still needs its regional update. See the [implementation ledger](REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) and [Vercel deployment plan](VERCEL_DEPLOYMENT_PLAN.md); do not turn bounded verification into an all-security-passed claim.
 
 ## Restarting the local test setup if needed
 

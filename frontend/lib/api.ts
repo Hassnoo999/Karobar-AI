@@ -289,6 +289,19 @@ export async function getLedgerEvents(): Promise<StoredLedgerEvent[]> {
   return getJson<StoredLedgerEvent[]>("/ledger/events");
 }
 
+/** Fetch through the authenticated API, never expose a private storage URL. */
+export async function getReceiptEvidence(filename: string, signal?: AbortSignal): Promise<Blob> {
+  const response = await fetch(`${API_BASE_URL}/evidence/files/${encodeURIComponent(filename)}`, {
+    cache: "no-store", headers: await authHeaders(), signal,
+  });
+  if (!response.ok) throw await requestError(response, "Could not load this receipt");
+  const mime = response.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase();
+  if (!mime || !["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"].includes(mime)) {
+    throw new Error("The receipt returned an unsupported file type.");
+  }
+  return response.blob();
+}
+
 export async function saveLedgerEvent(event: LedgerEvent): Promise<StoredLedgerEvent> {
   const headers = await authHeaders({ "Content-Type": "application/json" });
   const response = await fetch(`${API_BASE_URL}/ledger/events`, {
