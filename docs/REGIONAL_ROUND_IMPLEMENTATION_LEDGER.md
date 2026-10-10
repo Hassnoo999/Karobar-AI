@@ -471,6 +471,12 @@ Decisions: retain existing Python/httpx stack and validated extraction contract;
 
 Remaining: owner rotates chat-disclosed backup keys; OpenRouter free-endpoint capacity; human microphone/Urdu/Punjabi/handwritten-photo rehearsal; full two-account cloud isolation; tracked post-regional least-privilege DB role/rate limits/orphan object cleanup and eight development-tool dependency findings. No claim of 100% API availability or arbitrary-model accuracy.
 
+### Backup release observed
+
+Code **3b262c9d518a90493e01836bf8327133f3d79195** is pushed; local/remote SHAs match and the working tree is clean. Production **3s2fDgrLh9kSCXk2SJhK7mxjuaAL** is visibly Ready, **1m02s**. Actual stable-domain config now reports Groq/Groq backup/Gemini for speech and all four for receipts, with no missing credential names. This confirms deployment/configuration, not an induced production-outage test. The additional Groq key also passed generated English speech → transcript → **PKR 2,500 cash sale** extraction. `pip check` remains clean; expanded current-secret scan covers 157 candidate paths with zero matches.
+
+Hosted evidence dashboard still uses the two preserved account rows (one voice, one receipt). Its reminder dialog correctly drafts the deterministic PKR 5,000 balance template and explicitly does not send messages. The successful synthetic receipt draft remains unconfirmed for user review. OpenRouter free endpoints remain 429-limited; no paid model/credit purchase, auth weakening or fake recognition was introduced to mask that result. The owner's key rotation and human rehearsal/security follow-ups remain outstanding as listed above.
+
 ## Update protocol
 
 Second-run startup: frontend `127.0.0.1:3001` and backend `127.0.0.1:8001` are running for the team's live testing. The backend uses separate `tmp/regional-audit/run2-live.db` / `run2-live-uploads`, with existing configured AI providers; authentication is disabled only in this loopback test process. Original `.env` files/PostgreSQL are unchanged. Dashboard returned 200 with no browser errors and the known 63-entry seed totals. Preserve the team's new test entries; subsequent automated regression fixtures must not reset this live-test database. Next milestones: bounded Ask resolver/renderer, upload-time ownership, health/readiness trust corrections, focused end-to-end tests, then deployment/presentation gates.

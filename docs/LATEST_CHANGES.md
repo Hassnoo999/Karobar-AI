@@ -52,7 +52,7 @@ The UI/capture release is Ready on Vercel, and the user-uploaded synthetic recei
 
 ## Optional backup credentials and OpenRouter vision
 
-The fallback order is Groq, a separate Groq backup key, Gemini, then optional OpenRouter. The extra Groq key passed real receipt recognition; identical Groq keys are skipped, and SDK retries do not repeatedly hit a throttled key. OpenRouter officially supports vision, and its key validated, but both tested free Gemma endpoints returned 429, so it is not counted as guaranteed backup capacity. The chosen OpenRouter model handles text/receipts, not transcription; errors distinguish insufficient credits from throttling, and each capability has a 120-second overall deadline.
+The fallback order is Groq, a separate Groq backup key, Gemini, then optional OpenRouter; the production release is Ready and reports that exact chain. The extra Groq key passed real receipt recognition and synthetic speech-to-transaction extraction; duplicate keys and repeated SDK throttling retries are skipped. OpenRouter officially supports vision, and its key validated, but both tested free Gemma endpoints returned 429, so it is not counted as guaranteed backup capacity. Its chosen model handles text/receipts, not transcription; safe errors distinguish funding from throttling, and each capability has a 120-second overall deadline.
 
 ## Disposable data was removed carefully
 
