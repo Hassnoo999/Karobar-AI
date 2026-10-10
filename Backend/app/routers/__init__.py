@@ -5,7 +5,6 @@ from app.routers import (
     capture,
     customers,
     dashboard,
-    demo,
     events,
     evidence,
     financing,
@@ -13,7 +12,6 @@ from app.routers import (
     reminders,
 )
 
-# Bridge router MUST come before demo so its POST /demo/seed takes priority.
 ALL_ROUTERS = (
     bridge.router,
     health.router,
@@ -25,5 +23,4 @@ ALL_ROUTERS = (
     evidence.router,
     financing.router,
     reminders.router,
-    demo.router,
 )

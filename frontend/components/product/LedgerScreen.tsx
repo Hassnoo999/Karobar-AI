@@ -21,7 +21,7 @@ export function LedgerScreen() {
   const [overdue, setOverdue] = useState(false);
   const [page, setPage] = useState(1);
   const [receipt, setReceipt] = useState<StoredLedgerEvent | null>(null);
-  const ready = connection === "live" || connection === "demo";
+  const ready = connection === "live";
 
   useEffect(() => {
     const customer = new URLSearchParams(window.location.search).get("customer");

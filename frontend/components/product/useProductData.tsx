@@ -2,7 +2,6 @@
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { getCombinedData, type CombinedDataResponse } from "@/lib/api";
-import { demoProductData } from "@/lib/demo-fixture";
 import { useAuth } from "@/components/SupabaseProvider";
 
 const emptyData: CombinedDataResponse = {
@@ -10,8 +9,8 @@ const emptyData: CombinedDataResponse = {
   events: [], customers: [], source_counts: {},
   intelligence: {evidence_profile: {documentation_coverage: "No records", income_consistency: "No records", receivable_discipline: "No credit records", expense_pattern: "No records", customer_concentration: "No credit records", ledger_depth: "No records", trust_notes: []}, financing_matches: []},
 };
-type Connection = "checking" | "live" | "demo" | "error";
-type ProductData = CombinedDataResponse & {connection: Connection; refreshing: boolean; error: string; refresh: () => Promise<void>; previewDemo: () => void};
+type Connection = "checking" | "live" | "error";
+type ProductData = CombinedDataResponse & {connection: Connection; refreshing: boolean; error: string; refresh: () => Promise<void>};
 const ProductContext = createContext<ProductData | null>(null);
 
 export function ProductDataProvider({ children }: { children: React.ReactNode }) {
@@ -50,17 +49,10 @@ export function ProductDataProvider({ children }: { children: React.ReactNode })
     return () => { generation.current += 1; };
   }, [identity, refresh]);
 
-  function previewDemo() {
-    generation.current += 1;
-    setSnapshot({owner: identity, data: demoProductData});
-    setConnection("demo");
-    setRefreshing(false);
-    setError("");
-  }
   const data = snapshot.owner === identity ? snapshot.data : emptyData;
   // Remount private screen state too: old chat messages/drafts must never carry
   // across account switches, even though the shared snapshot already clears.
-  return <ProductContext.Provider key={identity} value={{...data, connection, refreshing, error, refresh, previewDemo}}>{children}</ProductContext.Provider>;
+  return <ProductContext.Provider key={identity} value={{...data, connection, refreshing, error, refresh}}>{children}</ProductContext.Provider>;
 }
 
 export function useProductData() {

@@ -4,8 +4,8 @@ Translates between the frontend's expected API shapes (rupee floats, sale/credit
 event types, combined intelligence response) and the backend's internal models (paisa
 integers, cash_sale/credit_sale, separate passport + readiness endpoints).
 
-This router MUST be registered before demo.py in ALL_ROUTERS so that its POST
-/demo/seed endpoint takes priority over the simpler one in demo.py.
+Public sample seed/reset endpoints are intentionally absent. All product records
+come from the authenticated merchant's confirmed ledger.
 """
 from __future__ import annotations
 
@@ -24,7 +24,6 @@ from app.ai import get_adapter
 from app.ai.base import ProviderError
 from app.auth import get_merchant_id
 from app.config import settings
-from app.data.seed import load_seed
 from app.db import get_db, pkt_today
 from app.errors import AIUnavailableError, DomainValidationError
 from app.models import BusinessEvent, Customer
@@ -44,7 +43,6 @@ from app.services.metrics import dashboard_bundle
 from app.services.metrics import _fetch_confirmed_events, _fetch_customers
 from app.services.money import format_pkr
 from app.services.passport import compute_passport
-from app.routers.demo import require_local_demo
 
 router = APIRouter(tags=["bridge"])
 
@@ -187,14 +185,14 @@ async def get_config():
         "models": {
             "alibaba": None,
             "groq_text": settings.groq_text_model,
-            "groq_vision": None,
+            "groq_vision": settings.receipt_vision_model,
             "groq_transcribe": settings.groq_audio_model,
             "gemini": settings.gemini_model,
         },
         "missing_required_env": [] if chain else ["GROQ_API_KEY or GEMINI_API_KEY"],
         "capabilities": {
             "voice": [name for name in chain],
-            "receipt": [name for name in chain if name != "groq"],
+            "receipt": [name for name in chain],
         },
         "message": f"Active chain: {' → '.join(chain)}" if chain else "Real AI is not configured. Manual entry remains available.",
     }
@@ -297,6 +295,8 @@ async def understand_receipt(
     from app.services.evidence_storage import discard_receipt, store_receipt
 
     from starlette.concurrency import run_in_threadpool
+    from app.services.receipt_validation import validate_receipt_image
+    await run_in_threadpool(validate_receipt_image, image, mime)
     filename = await run_in_threadpool(store_receipt, image, _IMAGE_EXTS[mime], merchant_id)
 
     adapter = get_adapter()
@@ -587,28 +587,6 @@ async def reminder_draft(
             f"Draft prepared using {provider_name} provider.",
         ],
     }
-
-
-# ---------------------------------------------------------------------------
-# POST /demo/seed  —  seed and return events in frontend shape
-# ---------------------------------------------------------------------------
-
-
-@router.post("/demo/seed", dependencies=[Depends(require_local_demo)])
-def demo_seed(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
-    load_seed(db, merchant_id=merchant_id)
-    _combined_cache.pop(merchant_id, None)  # invalidate combined cache
-    rows = (
-        db.query(BusinessEvent, Customer.display_name)
-        .outerjoin(Customer, BusinessEvent.customer_id == Customer.id)
-        .filter(
-            BusinessEvent.merchant_id == merchant_id,
-            BusinessEvent.verification_status == VerificationStatus.confirmed.value,
-        )
-        .order_by(BusinessEvent.occurred_at.desc(), BusinessEvent.id.desc())
-        .all()
-    )
-    return [_event_to_fe(ev, name) for ev, name in rows]
 
 
 # ---------------------------------------------------------------------------

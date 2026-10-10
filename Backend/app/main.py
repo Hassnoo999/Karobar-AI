@@ -10,16 +10,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.ai.base import ProviderError
-from app.auth import DEMO_MERCHANT
 from app.config import settings
-from app.data.seed import load_seed
-from app.db import SessionLocal, engine, init_db
+from app.db import engine, init_db
 from app.errors import AIUnavailableError, DomainValidationError, KarobaarError, NotFoundError, StorageUnavailableError
 from app.deployment import validate_deployment
-from app.models import BusinessEvent
 from app.routers import ALL_ROUTERS
 
 logger = logging.getLogger(__name__)
+logging.getLogger("httpx").setLevel(logging.WARNING)  # don't log private receipt URLs on routine SDK requests
 
 # Serverless adapters do not all run ASGI lifespan. Validate at import too,
 # before constructing an application that could serve unsafe default settings.
@@ -51,17 +49,6 @@ async def lifespan(app: FastAPI):
     validate_deployment(settings)
     if not settings.deployed:
         init_db()
-    if settings.auto_seed:
-        db = SessionLocal()
-        try:
-            if (
-                db.query(BusinessEvent)
-                .filter(BusinessEvent.merchant_id == DEMO_MERCHANT)
-                .count() == 0
-            ):
-                load_seed(db, merchant_id=DEMO_MERCHANT)
-        finally:
-            db.close()
     # A reload/startup must not make a paid model call.
     warmup_db = asyncio.create_task(_warmup_db_pool())
     yield
@@ -121,13 +108,22 @@ async def _validation_handler(request: Request, exc: DomainValidationError) -> J
 
 @app.exception_handler(AIUnavailableError)
 async def _ai_unavailable_handler(request: Request, exc: AIUnavailableError) -> JSONResponse:
-    # Upstream exceptions can contain request URLs, tokens or provider internals.
-    return _error(503, "ai_unavailable", "AI recognition is temporarily unavailable. Retry or enter the facts manually.")
+    return _ai_failure_response(exc.__cause__)
 
 
 @app.exception_handler(ProviderError)
 async def _provider_error_handler(request: Request, exc: ProviderError) -> JSONResponse:
-    return _error(503, "ai_unavailable", "AI recognition is temporarily unavailable. Retry or enter the facts manually.")
+    return _ai_failure_response(exc)
+
+
+def _ai_failure_response(exc: BaseException | None) -> JSONResponse:
+    from app.ai.base import AI_FAILURE_MESSAGES
+    category = getattr(exc, "category", "unavailable")
+    if category not in AI_FAILURE_MESSAGES:
+        category = "unavailable"
+    return JSONResponse(status_code=422 if category in {"no_speech", "invalid_output"} else 503,
+                        content={"error": {"type": "ai_unavailable", "reason": category,
+                                          "message": AI_FAILURE_MESSAGES[category]}})
 
 
 @app.exception_handler(StorageUnavailableError)

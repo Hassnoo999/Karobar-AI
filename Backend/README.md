@@ -25,13 +25,13 @@ Ledger arithmetic is deterministic; AI proposes drafts, and financial answers us
 |---|---|
 | API | FastAPI + Pydantic v2 (OpenAPI at `/docs`) |
 | DB | SQLAlchemy 2.0 ORM + SQLite (Postgres-ready via `DATABASE_URL`) |
-| AI — first priority | **Groq** — configured text/JSON and Whisper audio; receipt calls intentionally fall through |
+| AI — first priority | **Groq** — Qwen text/receipt vision and Whisper audio |
 | AI — fallback | **Google Gemini** — configured text, vision and audio; current live receipt path |
 | AI — offline fixture only | **Demo provider** — explicit local test mode; never an automatic fallback or deployed capture provider |
 
-Real-provider chain: `Groq -> Gemini`, with Gemini handling receipt vision directly.
+Real-provider chain: `Groq -> Gemini`, including receipt vision with real image input.
 Malformed structured output gets one repair retry; exhausted or unconfigured APIs
-return a clear 503 and manual-entry guidance, never a fake capture. Whisper detects
+return a safe, categorized 503 (service/quota/configuration) or 422 (unusable recognition) and manual-entry guidance, never a fake capture. Whisper detects
 the spoken language instead of forcing Urdu. Gemini capture uses nullable structured
 fields, corrected image orientation and higher-resolution receipt preparation.
 Unknown receipt dates and transfer purposes remain missing for merchant review.
@@ -52,8 +52,8 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 - Swagger UI: http://localhost:8000/docs
-- On first **local development** start the DB is created and auto-seeded with a deterministic 3.5-month
-  kiryana-store dataset (63 events, 5 customers) so every screen has data immediately.
+- Local startup creates an empty database when needed. It no longer inserts sample data.
+  Isolated tests explicitly load their own deterministic fixture; existing local data is preserved.
 
 ## Configuration (`.env`)
 
@@ -64,14 +64,14 @@ uvicorn app.main:app --reload --port 8000
 | `GEMINI_API_KEY` | *(empty)* | Google AI Studio key |
 | `GROQ_TEXT_MODEL` | `qwen/qwen3.8-27b` | extraction / remaining question classification; verify provider availability before deploying |
 | `GROQ_AUDIO_MODEL` | `whisper-large-v3-turbo` | transcription |
-| `GROQ_VISION_MODEL` | `groq/compound` | retained configuration; does not implement Groq receipt recognition |
+| `GROQ_VISION_MODEL` | `qwen/qwen3.8-27b` | real image extraction; known legacy Compound values migrate to this vision model |
 | `GEMINI_MODEL` | `gemini-3.6-flash` | current code default; verify provider availability before deploying |
 | `DATABASE_URL` | `sqlite:///./karobaar.db` | any SQLAlchemy URL |
 | `UPLOADS_DIR_PATH` | `uploads` | private receipt storage, including `.owners/` metadata; both must persist |
 | `RECEIPT_STORAGE` | `local` | cloud deployment requires `vercel_blob`; no filesystem fallback on storage failure |
 | `BLOB_STORE_ID` | *(empty)* | connected private Vercel Blob store; cloud uses request-scoped OIDC, not client tokens |
 | `CORS_ORIGINS` | `http://localhost:3000,...` | comma-separated frontend origins |
-| `AUTO_SEED` | `true` | seed the demo dataset when the DB is empty |
+| `AUTO_SEED` | `false` | legacy guard setting; startup no longer seeds data and production requires false |
 | `REQUIRE_AUTH` | `false` | set `true` in production to require a verified Supabase access token |
 | `SUPABASE_URL` | *(empty)* | Supabase project URL used to validate token issuer/JWKS |
 | `SUPABASE_JWT_SECRET` | *(empty)* | legacy HS256 signing secret; keep server-side only |
@@ -101,10 +101,12 @@ All routes are under `/api`. Canonical endpoints use **integer paisa**
 | `GET /api/combined` | Shared product snapshot: summary, latest 200 entries, full-history customers, dashboard, passport and source counts |
 | `POST /api/ledger/events` | Typed frontend confirmation bridge; decimal PKR → canonical paisa |
 | `POST /api/reminders/draft` | AI-drafted payment reminder (merchant edits & sends) |
-| `POST /api/demo/seed` / `POST /api/demo/reset` | Local-only demo controls; both return 403 on cloud deployments |
+| Former `/api/demo/seed` / `/api/demo/reset` | Removed; return 404 without changing records |
 
 Error envelope: `{"error": {"type": "not_found" | "validation_error" | "ai_unavailable" | ..., "message": "..."}}`
 with status 404 / 422 / 503.
+
+AI failures also include a safe `reason` such as `rate_limit`, `busy`, `timeout`, `configuration` or `invalid_output`. Provider bodies and keys never appear in public messages. Receipt bytes are decoded and format-checked before storage/recognition; corrupt photos get a file-specific 422. JPEG, PNG and WebP are supported; HEIC requires export to JPEG first.
 
 ## Deterministic domain rules
 
@@ -147,7 +149,7 @@ Backend/
 ## Testing
 
 ```bash
-pytest            # 237 tests; offline (explicit fixtures, isolated SQLite, mocked Blob)
+pytest            # 249 tests; offline (explicit fixtures, isolated SQLite, mocked Blob)
 python scripts/eval_extractor.py   # extraction accuracy against the live chain
 python -m scripts.check_providers  # explicit paid checks; prints no raw provider errors
 python -m scripts.release_preflight --database # read-only TLS/RLS/grants inspection
@@ -158,7 +160,7 @@ Tests pin the seed dataset's designed outcomes: total outstanding **Rs 100,000**
 top debtor **Ahmed Rs 58,500** (oldest unpaid 45 days = overdue), credit sales
 **Rs 198,000**, recovered **Rs 98,000 (~49.5%)**.
 
-The regional checkpoints add 137 regressions to the original 74: bridge validation/precision/provenance, >200-row balances, question guards, upload ownership, evidence claims, safe provider diagnostics, cloud safeguards and overlapping requests with a one-connection pool. The original question audit passes 26/26. Offline checks are not live authentication/storage proof. Gemini text and synthetic English receipt extraction were checked separately; real microphone/Urdu photo quality remains unverified. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md).
+The current suite covers ledger precision/provenance, >200-row balances, bounded question tools, upload ownership, evidence claims, safe provider diagnostics, receipt-byte validation and overlapping requests with a one-connection pool. All 249 cases pass. Both real image providers passed synthetic credit and ambiguous-transfer checks; generated English voice passed Groq. Offline checks do not establish live account isolation or real microphone/Urdu-photo accuracy. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) for separate hosted evidence.
 
 ## Receipt ownership and existing files
 

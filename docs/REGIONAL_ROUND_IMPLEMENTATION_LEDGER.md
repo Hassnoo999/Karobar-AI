@@ -425,6 +425,36 @@ Post-fix zero-signal WAV probe now rejects before provider work. Existing cloud 
 
 Exit status: focused implementation, full offline suite/build, real-provider synthetic recognition and deployed no-Demo routing **verified**. Real merchant microphone/dialect/handwritten-photo accuracy and two-account isolation remain separate rehearsal/security gates. Gemini returned intermittent upstream 503s in synthetic probes; no guarantee of API availability or perfect OCR/STT is claimed. Documentation follow-up records these observed results without changing capture code or cloud configuration.
 
+## Resumed release repair — 10 October 2026
+
+Baseline: working tree clean at `5ac3349`; requested Vercel deployment `jEACLmzRp98m1LDDEnmVhzFHD2H9` is Ready/Production at that same commit. No unfinished code change was found. Previous human microphone, two-account and provider-availability gates remain open; earlier test counts are not new verification.
+
+Execute in order, with no accounting or feature expansion:
+
+1. Receipt/voice reliability: diagnose numeric provider failures, enable and verify the existing Groq Qwen vision capability, keep Gemini fallback, provide safe actionable errors and retain the file for retry. Preserve unknown transfer purpose for merchant review; do not force it into sales or repayment.
+2. Ask: reproduce composer clipping, repair viewport/grid sizing, verify supported ledger questions and unsupported boundaries.
+3. Sign-in: single clean field border, calmer typography, CSS-only evidence-themed 3D decoration with reduced-motion support; keep real Supabase authentication.
+4. Remove public sample-preview/session bypass entry points. Real data remains authoritative; offline test fixtures are not production recognition.
+5. Run focused and full regressions/build, check secrets, commit/push and observe the actual production release. Record cloud verification separately from mocks.
+6. Only after hosted verification, identify disposable test rows and request exact scope if mixed with merchant data. Never blanket-delete account history. Write a short plain-language changes report including deployment history and unresolved gates.
+
+Screenshot finding: the successful personal-transfer image has ambiguous business purpose, so its blank transaction type is correct. The failure screenshot is a generic service error; the failed image is unspecified. Historical logs/real probes showed Gemini 503s, but the screenshot alone cannot establish the precise upstream cause. The current Groq integration explicitly disables receipt vision despite current Groq documentation supporting the configured Qwen family; verify a real call before releasing it.
+
+### Resumed checkpoints prepared and checked
+
+- Receipt cause confirmed in the requested deployment's actual Vercel warning log: `22:01:29`, `/api/understand/receipt`, Gemini `ServerError`, numeric **503**. No image-readability diagnosis is inferred from that provider outage. Proof is outside Git at `resumed-receipt-503-cause.jpg`.
+- Groq now sends actual image bytes to Qwen vision with JSON output and a bounded 1,024-token completion; Gemini remains the real fallback. Legacy `groq/compound`/Compound-mini settings migrate only to the verified Qwen vision default. Fresh-key synthetic tests initially hit **429 / tokens per minute**, then **both Groq and Gemini passed credit PKR 5,000 and unclassified-transfer PKR 5,000 checks**. Generated English voice returned a PKR 2,500 cash sale through Groq. No ledger confirmations in these direct-provider tests.
+- Categorized, application-owned failure messages propagate through both capture API shapes without upstream bodies. Corrupt/mismatched photos are rejected before storage/AI; HEIC conversion is explicitly required rather than pretending a decoder exists. Browser retry retains its file. New focused capture subset: **37 passed**; complete suite/build passed before final documentation and small follow-up edits, to be rerun before push.
+- Ask layout measured on the old hosted build: textarea bottom **767px** on a **639px** viewport, proving clipping rather than a missing input component. Explicit `minmax(0,1fr)` grid rows, nonshrinking header/composer and scrolling examples panel repair it. New local screenshot shows the input within the viewport. Desktop local auth screenshot verifies no nested borders and input weight **400**; CSS-only proof animation is behind the content, respects reduced motion and introduces no library.
+- Public sample-preview/session fallback, seed/reset HTTP routes and startup seed mutation removed. Seed-based regression fixtures remain isolated. Existing local/live merchant rows are preserved. Old sample fixture/router source removals are recoverable in Git history, not merchant-data deletion. Landing reminder example stays visibly illustrative; account/workspace links no longer advertise a sample bypass.
+- Plain-language report created at `docs/LATEST_CHANGES.md`; frontend/backend/root READMEs updated for actual supported formats, real vision and removed sample controls. Remaining: final focused responsive/hosted verification, commit/push/Ready observation, then exact-scope disposable-data cleanup.
+
+### Final local release gates
+
+Full isolated backend suite: **249 passed in 15.90s**; `pip check` reports no broken requirements. Final Node 22 webpack/TypeScript production build compiles and generates all **11 pages**. These include the removed public sample routes/preview and the new receipt-validation/recovery contracts, not only the earlier capture subset.
+
+Local desktop and narrow-screen browser checks: the Ask composer stays visible before and after a PKR 100,000 fixture-balance answer; messages scroll separately. Narrow viewport has no horizontal document overflow. Sign-in input has no inner border/outline and computed weight 400, with one wrapper focus treatment. Reduced-motion support remains enabled. Screenshots are outside Git (`resumed-chat-local-fixed.jpg`, `resumed-signin-local.jpg`). Hosted release and disposable-data cleanup are still pending at this checkpoint.
+
 ## Update protocol
 
 Second-run startup: frontend `127.0.0.1:3001` and backend `127.0.0.1:8001` are running for the team's live testing. The backend uses separate `tmp/regional-audit/run2-live.db` / `run2-live-uploads`, with existing configured AI providers; authentication is disabled only in this loopback test process. Original `.env` files/PostgreSQL are unchanged. Dashboard returned 200 with no browser errors and the known 63-entry seed totals. Preserve the team's new test entries; subsequent automated regression fixtures must not reset this live-test database. Next milestones: bounded Ask resolver/renderer, upload-time ownership, health/readiness trust corrections, focused end-to-end tests, then deployment/presentation gates.

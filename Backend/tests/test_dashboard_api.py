@@ -129,10 +129,9 @@ def test_openapi_contract_is_generated(client):
         "/api/financing/programs",
         "/api/financing/readiness",
         "/api/reminders/draft",
-        "/api/demo/seed",
-        "/api/demo/reset",
     ):
         assert expected in paths, f"missing endpoint {expected}"
+    assert "/api/demo/seed" not in paths and "/api/demo/reset" not in paths
     # every event amount crossing the API is integer paisa
     event_schema = schema["components"]["schemas"]["EventOut"]
     assert json.dumps(event_schema)

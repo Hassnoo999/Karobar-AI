@@ -76,7 +76,7 @@ export function EvidenceScreen() {
           <div className="mt-3 rounded-lg border border-[#e6e7d2] bg-[#fffdf2] p-3 text-xs leading-6 text-[#96916a]">Recorded history is not verified business age. No sales or receipt-percentage threshold is used to infer qualification.</div>
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p className="text-[11px] text-[#627258]">{match.program.last_checked ? "Reference page reviewed: " + match.program.last_checked : "Current terms not verified"} · Reconfirm with institution</p><a href={match.program.source_url} target="_blank" rel="noreferrer" className="ui-button-secondary !min-h-10 !text-xs">Official source <ArrowUpRight size={13} /></a></div>
         </div>
-      </details>) : <EmptyState title={connection === "checking" ? "Loading references" : "No references in this view"} description={connection === "demo" ? "The read-only preview does not simulate financing matches." : "References will appear when the updated backend is connected."} />}</div>
+      </details>) : <EmptyState title={connection === "checking" ? "Loading references" : "No references in this view"} description="References will appear when the backend is connected." />}</div>
     </section>
     <p className="mt-4 text-xs leading-5 text-[#627258]">Karobaar helps organize evidence. It does not calculate a credit score, approve financing, or send reminders automatically.</p>
 
@@ -89,7 +89,6 @@ export function EvidenceScreen() {
           <p className="mt-3 text-xs leading-6 text-[#627258]">A deterministic template using the confirmed customer balance. Review the wording before copying.</p>
           {staleDraft ? <div role="alert" className="mt-4 rounded-xl bg-[#fff5df] p-4 text-xs text-[#9d824d]">The balance has changed. <button onClick={() => selectCustomer(customerId ?? 0)} className="underline">Regenerate this draft</button> before copying.</div> : null}
           <div className="mt-5 flex items-start gap-2 rounded-xl border border-[#e5e8ce] bg-[#fffdf0] p-4 text-xs leading-6 text-[#989064]"><ShieldCheck size={16} className="mt-1 shrink-0" /><p>Draft only. Copying does not send WhatsApp or SMS. You decide whether, where and to whom it is sent.</p></div>
-          {connection === "demo" ? <p className="mt-3 text-xs text-[#9d824d]">Illustrative sample balance, not a real customer's debt.</p> : null}
           {copyError ? <p role="alert" className="mt-4 text-xs leading-6 text-[#a47550]">{copyError}</p> : null}
         </div>
         <div className="border-t border-[#e4ecd9] p-5"><button onClick={() => void copyReminder()} disabled={!message.trim() || !selected || staleDraft} className="ui-button-primary w-full">{copied ? <Check size={16} /> : <ClipboardCopy size={16} />}{copied ? "Message copied" : "Copy drafted message"}</button></div>

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./karobaar.db"
     uploads_dir_path: str = "uploads"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
-    auto_seed: bool = True
+    auto_seed: bool = False
     receipt_storage: str = "local"  # local booth / vercel_blob deployed receipts
     blob_store_id: str = ""
 
@@ -39,10 +39,17 @@ class Settings(BaseSettings):
     # --- Models -------------------------------------------------------------
     groq_text_model: str = "qwen/qwen3.8-27b"
     groq_audio_model: str = "whisper-large-v3-turbo"
-    groq_vision_model: str = "groq/compound"
+    groq_vision_model: str = "qwen/qwen3.8-27b"
     groq_ping_model: str = "groq/compound-mini"
     gemini_model: str = "gemini-3.6-flash"
     ai_timeout_seconds: float = 60.0
+
+    @property
+    def receipt_vision_model(self) -> str:
+        # Migrate only known legacy non-vision values from older .env templates.
+        if self.groq_vision_model.strip() in {"", "groq/compound", "groq/compound-mini"}:
+            return "qwen/qwen3.8-27b"
+        return self.groq_vision_model.strip()
 
     @property
     def uploads_dir(self) -> Path:

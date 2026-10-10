@@ -141,6 +141,31 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { scrollbar-width: none; }
 
+/* The chat grid must shrink its message track, not push the composer away. */
+.ask-workspace > .page-heading { flex-shrink: 0; }
+.ask-workspace textarea { border: 0; box-shadow: none; font-weight: 400; }
+.ask-workspace textarea:focus-visible { outline: none; }
+.ask-workspace label:focus-within { box-shadow: 0 0 0 3px rgba(65, 151, 107, .12); }
+
+/* One focus ring per field; inputs do not inherit a bold label or nested box. */
+.auth-screen label { font-weight: 500; }
+.auth-screen h2 { font-weight: 600; letter-spacing: -.035em; }
+.auth-screen input { border: 0; outline: none; box-shadow: none; border-radius: 0; padding: 0; background: transparent; font-size: .875rem; font-weight: 400; }
+.auth-screen input:focus-visible { outline: none; }
+.auth-screen label > span:focus-within { box-shadow: 0 0 0 3px rgba(21,148,110,.10); }
+.auth-screen button, .auth-screen a, .auth-screen p { font-weight: 400; }
+.auth-screen button[type="submit"], .auth-screen form > button { font-weight: 600; }
+.auth-screen section:first-child > a, .auth-screen section:first-child > div:not(.auth-proof-scene), .auth-screen section:first-child > p { position: relative; z-index: 1; }
+.auth-proof-scene { position: absolute; inset: 0; overflow: hidden; pointer-events: none; background: radial-gradient(ellipse at 90% 15%, rgba(103,221,185,.13), transparent 55%); perspective: 1000px; }
+.auth-proof-orbit { position: absolute; right: -40px; top: 8%; width: 300px; height: 260px; opacity: .22; transform-style: preserve-3d; animation: proof-float 12s ease-in-out infinite; }
+.auth-proof-sheet { position: absolute; width: 150px; height: 190px; border: 1px solid #72e0b7; border-radius: 14px; background: linear-gradient(145deg, rgba(114,224,183,.16), rgba(5,45,37,.6)); transform: rotateY(-25deg) rotateZ(14deg) translateZ(60px); padding: 30px 22px; box-shadow: 0 24px 60px rgba(0,0,0,.15); }
+.auth-proof-sheet i { display: block; height: 3px; margin-bottom: 18px; border-radius: 4px; background: #72e0b7; }
+.auth-proof-sheet i:nth-child(2) { width: 70%; }
+.auth-proof-sheet b { display: grid; place-items: center; width: 35px; height: 35px; margin: 22px auto; border: 1px solid #72e0b7; border-radius: 50%; font-weight: 400; }
+.auth-proof-sheet-back { left: 110px; top: 35px; transform: rotateY(-25deg) rotateZ(-9deg) translateZ(-40px); }
+.auth-proof-wave { position: absolute; left: 18px; bottom: 0; letter-spacing: 8px; color: #72e0b7; font-size: 30px; transform: translateZ(100px); }
+@keyframes proof-float { 0%, 100% { transform: rotateX(8deg) rotateY(-10deg) translateY(0); } 50% { transform: rotateX(-7deg) rotateY(12deg) translateY(18px); } }
+
 @media (max-width: 767px) {
   .scene-grid { background-size: 64px 64px; opacity: .13; }
 }

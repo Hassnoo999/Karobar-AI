@@ -119,13 +119,10 @@ def test_delete_event(client):
     assert client.get(f"/api/events/{created['id']}").status_code == 404
 
 
-def test_demo_seed_and_reset_roundtrip(seeded_client):
+def test_removed_demo_controls_cannot_seed_or_erase_records(seeded_client):
     seeded = seeded_client.get("/api/events").json()
     assert seeded["total"] == 63
 
-    assert seeded_client.post("/api/demo/reset").status_code == 200
-    assert seeded_client.get("/api/events").json()["total"] == 0
-    assert seeded_client.get("/api/customers").json()["total"] == 0
-
-    assert seeded_client.post("/api/demo/seed").status_code == 200
+    assert seeded_client.post("/api/demo/reset").status_code == 404
+    assert seeded_client.post("/api/demo/seed").status_code == 404
     assert seeded_client.get("/api/events").json()["total"] == 63

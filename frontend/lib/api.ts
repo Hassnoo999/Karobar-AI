@@ -362,15 +362,7 @@ export async function askQuestion(question: string): Promise<AskResponse> {
 }
 
 export async function seedDemoLedger(): Promise<StoredLedgerEvent[]> {
-  const headers = await authHeaders();
-  const response = await fetch(`${API_BASE_URL}/demo/seed`, {
-    method: "POST",
-    headers,
-  });
-
-  if (!response.ok) {
-    throw new Error(`Demo seed failed: ${response.status}`);
-  }
-
-  return response.json() as Promise<StoredLedgerEvent[]>;
+  // Historical, unrouted components still import this function. No sample
+  // mutation is allowed: its server route and product entry point are removed.
+  throw new Error("Sample data controls have been removed. Use your signed-in ledger.");
 }

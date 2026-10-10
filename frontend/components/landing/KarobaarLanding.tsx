@@ -8,7 +8,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { CinematicStage, LoaderStage } from "./CinematicStage";
 
 const backgrounds = ["#061914", "#dbe9e3", "#071d18", "#f0ded5", "#dce9e4", "#071c24", "#061914"];
-const navItems = [["Why", "#why"], ["How", "#process"], ["Proof", "#proof"], ["Demo", "#demo"]];
+const navItems = [["Why", "#why"], ["How", "#process"], ["Proof", "#proof"], ["Reminders", "#reminders"]];
 const flowSteps = [
   { icon: Mic, label: "Speak", title: "Say it naturally", detail: "Ahmed ne 2,500 rupay udhaar liye.", meta: "Urdu or Roman Urdu" },
   { icon: ScanLine, label: "Confirm", title: "Review the proposed entry", detail: "Customer: Ahmed · Credit: PKR 2,500", meta: "Nothing is saved silently" },
@@ -167,7 +167,7 @@ export function KarobaarLanding() {
         <nav className="hidden items-center gap-10 text-sm font-semibold text-white/66 md:flex">
           {navItems.map(([label, href]) => <a key={label} href={href} className="transition-colors hover:text-[#72e0b7]">{label}</a>)}
         </nav>
-        <div className="hidden items-center gap-6 md:flex"><a href="/signin" className="text-sm font-bold text-white/68 hover:text-white">Sign in</a><a href="/dashboard" className="flex items-center gap-2 border-b border-[#72e0b7] pb-1 text-sm font-bold">Open live demo <ArrowRight size={15} /></a></div>
+        <div className="hidden items-center gap-6 md:flex"><a href="/signin" className="text-sm font-bold text-white/68 hover:text-white">Sign in</a><a href="/signup" className="flex items-center gap-2 border-b border-[#72e0b7] pb-1 text-sm font-bold">Create account <ArrowRight size={15} /></a></div>
         <button onClick={() => setMenuOpen(true)} className="text-white md:hidden" aria-label="Open navigation"><Menu size={26} /></button>
       </div>
     </motion.header>
@@ -186,7 +186,7 @@ export function KarobaarLanding() {
             <p className="mt-8 max-w-lg text-base leading-7 text-white/68 md:text-lg md:leading-8">Voice-first financial proof for the businesses that keep Pakistan moving.</p>
             <div className="mt-9 flex flex-wrap items-center gap-7">
               <a href="#process" className="inline-flex items-center gap-4 bg-[#72e0b7] px-6 py-4 text-sm font-bold text-[#071b16] transition-colors hover:bg-white">See how it works <ArrowRight size={17} /></a>
-              <a href="/dashboard" className="inline-flex items-center gap-2 border-b border-white/70 pb-1 text-sm font-bold">Open live demo <ArrowRight size={15} /></a>
+              <a href="/signin" className="inline-flex items-center gap-2 border-b border-white/70 pb-1 text-sm font-bold">Open your workspace <ArrowRight size={15} /></a>
             </div>
           </Reveal>
         </div>
@@ -262,14 +262,14 @@ export function KarobaarLanding() {
         </div>
       </section>
 
-      <section id="demo" data-scene className="flex min-h-[124svh] items-center px-5 py-28 text-white md:px-10 lg:px-14">
+      <section id="reminders" data-scene className="flex min-h-[124svh] items-center px-5 py-28 text-white md:px-10 lg:px-14">
         <div className="mx-auto grid w-full max-w-[1440px] lg:grid-cols-2">
           <div className="hidden lg:block" />
           <Reveal className="max-w-xl lg:justify-self-end">
             <SceneLabel number="05" light>Balance to action</SceneLabel>
             <h2 className="mt-7 font-display text-5xl leading-[0.98] md:text-7xl">A reminder grounded in a real ledger.</h2>
             <div className="mt-10 border-y border-white/16 py-7">
-              <div className="flex items-center justify-between text-xs font-bold uppercase"><span className="text-[#72e0b7]">Drafted on screen</span><span className="text-white/45">PKR 2,500 due</span></div>
+              <div className="flex items-center justify-between text-xs font-bold uppercase"><span className="text-[#72e0b7]">Illustrative reminder</span><span className="text-white/45">Example: PKR 2,500 due</span></div>
               <blockquote className="mt-7 font-display text-2xl leading-9 text-white/82 md:text-3xl md:leading-10">“{reminder}”</blockquote>
               <button onClick={copyReminder} className="mt-8 inline-flex items-center gap-3 border-b border-[#72e0b7] pb-1 text-sm font-bold"><Copy size={16} />{copied ? "Message copied" : "Copy drafted message"}</button>
             </div>

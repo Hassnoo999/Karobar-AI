@@ -54,11 +54,11 @@ export function AskKarobaarScreen() {
     } finally {pending.current = false; if (active.current) setThinking(false);}
   }
 
-  return <div className="flex h-[calc(100dvh-184px)] min-h-[440px] flex-col md:h-[calc(100dvh-192px)] lg:h-[calc(100dvh-144px)]">
+  return <div className="ask-workspace flex h-[calc(100dvh-184px)] min-h-[480px] flex-col md:h-[calc(100dvh-192px)] lg:h-[calc(100dvh-144px)]">
     <PageHeading eyebrow="Your ledger, in plain language" title="Ask Karobaar." description="Ask about customer balances, monthly sales and sales comparisons." />
-    <div className="ui-card grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[1fr_260px]">
+    <div className="ui-card grid min-h-0 flex-1 grid-rows-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[minmax(0,1fr)_260px]">
       <section className="flex min-h-0 min-w-0 flex-col" aria-label="Ledger conversation">
-        <div className="flex items-center justify-between gap-3 border-b border-[#e7ede4] px-5 py-3.5">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-[#e7ede4] px-5 py-3.5">
           <div className="flex items-center gap-3"><span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e5f0dd] text-[#4d8151]"><MessageCircleMore size={18} strokeWidth={1.5} /></span><div><p className="text-xs font-semibold">Ledger assistant</p><p className="mt-0.5 text-[11px] text-[#627258]">Read-only · never changes your records</p></div></div>
           <button className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-[#627258] hover:bg-[#f0f5ed]" onClick={() => setMessages([])} disabled={!messages.length || thinking} aria-label="Clear chat" title="Clear chat"><RotateCcw size={16} /></button>
         </div>
@@ -80,12 +80,12 @@ export function AskKarobaarScreen() {
           </div>)}
           {thinking ? <div role="status" className="flex items-center gap-2 text-xs text-[#627258]"><span className="h-3 w-3 animate-spin rounded-full border border-[#c4d7b6] border-t-[#55814e]" />Checking your confirmed ledger…</div> : null}
         </div>
-        <form onSubmit={event => {event.preventDefault(); void send(input);}} className="border-t border-[#e7ede4] bg-white p-3 md:p-4">
+        <form onSubmit={event => {event.preventDefault(); void send(input);}} className="shrink-0 border-t border-[#e7ede4] bg-white p-3 md:p-4">
           <label className="flex items-end gap-2 rounded-xl border border-[#d4e0cc] bg-[#fbfcf8] p-2 focus-within:border-[#7caf65]"><span className="sr-only">Your question</span><textarea rows={1} value={input} maxLength={500} onChange={event => setInput(event.target.value)} disabled={connection !== "live"} onKeyDown={event => {if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {event.preventDefault(); void send(input);}}} placeholder={connection === "live" ? "Ask a question about your ledger…" : "Connect the backend to ask questions"} className="max-h-24 min-h-[44px] min-w-0 flex-1 resize-none bg-transparent px-2 py-3 text-xs outline-none disabled:opacity-60" /><button disabled={input.trim().length < 2 || thinking || connection !== "live"} className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#326844] text-white" aria-label="Send question"><ArrowUp size={18} /></button></label>
           <p className="mt-2 text-center text-[11px] text-[#627258]">Enter to send · Shift + Enter for a new line · No loan approval or credit scoring</p>
         </form>
       </section>
-      <aside className="hidden border-l border-[#e5ecdf] bg-[#f9fbf5] p-5 lg:block">
+      <aside className="hidden min-h-0 overflow-y-auto border-l border-[#e5ecdf] bg-[#f9fbf5] p-5 lg:block">
         <p className="ui-eyebrow !text-[11px]">A good place to start</p><h2 className="!text-sm">Ask something useful.</h2>
         <div className="mt-5 space-y-2">{suggestions.map(item => <button key={item.title} onClick={() => void send(item.question)} disabled={thinking || connection !== "live"} className="flex min-h-[58px] w-full items-center justify-between gap-2 rounded-xl border border-[#e3ebd8] bg-white px-3 py-3 text-left text-xs text-[#668458] hover:border-[#b5d09a]">{item.title}<ArrowUpRight size={14} className="shrink-0 text-[#627258]" /></button>)}</div>
         <div className="mt-8 border-t border-[#e0e8d6] pt-5"><BookOpenCheck size={18} className="text-[#627258]" /><p className="mt-3 text-xs font-medium">A grounded answer has a boundary.</p><p className="mt-2 text-xs leading-6 text-[#627258]">This version supports five ledger queries. Expenses, profit, cash balance and financing eligibility are not supported chat tools.</p><p className="mt-3 text-xs leading-6 text-[#627258]">Only confirmed entries count. Errors are shown honestly; they are not replaced with estimated answers.</p></div>

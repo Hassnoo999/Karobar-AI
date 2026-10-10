@@ -22,7 +22,7 @@ Built for the Alibaba Cloud AI Hackathon Pakistan 2026, Financial Inclusion trac
 | Financing references | Five official reference links and manual next steps; no invented sales/history/receipt qualification thresholds |
 | Reminder action | An editable, ready-to-copy udhaar reminder using the real customer balance |
 
-Live capture uses real APIs only: Groq for multilingual speech/text, with Gemini for receipt vision and fallback speech/text. Missing keys, quota limits or outages produce an honest error—not a canned Demo draft. The review shows the actual provider, voice transcript and AI uncertainty notes. A generic bank transfer is not automatically classified as an udhaar repayment; unclear details require merchant review. Explicit offline Demo AI remains a local test fixture only and is disabled for deployed capture.
+Live capture uses real APIs only: Groq Qwen for text/receipt vision and Whisper for multilingual speech, with Gemini fallback. Missing keys, quota limits or outages produce a specific, safe error—not a canned draft. Retry reuses the selected capture. The review shows the actual provider, voice transcript and AI uncertainty notes. A generic bank transfer is not automatically classified as an udhaar repayment; unclear details require merchant review. Offline AI fixtures exist only for isolated tests; the public sample preview and seed/reset API have been removed.
 
 ## Product preview
 
@@ -49,7 +49,7 @@ Many micro-businesses have rich commercial activity, but it lives in memory, pap
 
 > **AI proposes a draft. The merchant confirms it. The ledger computes the totals.**
 
-## Demo flow
+## Merchant workflow
 
 1. Record a sale, expense, udhaar entry, or repayment by voice, receipt or manual entry.
 2. Review the extracted draft and explicitly confirm it.
@@ -106,14 +106,14 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-For the local single-shop demo, leave both Supabase frontend values empty and keep `REQUIRE_AUTH=false` in the backend. For every shared deployment, configure Supabase on both sides and set `REQUIRE_AUTH=true`.
+For a loopback-only development workspace, leave both Supabase frontend values empty, keep `REQUIRE_AUTH=false` locally and visit `/dashboard` directly. Sign-in never simulates an authenticated account. For every shared deployment, configure Supabase on both sides and set `REQUIRE_AUTH=true`.
 
 ## Safety and trust boundaries
 
 - Supabase access tokens are signature-, issuer-, audience-, and expiry-verified in production mode.
 - Ledger/customer queries are merchant-scoped; actual deployed two-user isolation and database access policies still need verification.
 - Receipt ownership is recorded at upload, then checked before attachment and reading. Local files use a private owner registry; cloud files use a server-selected merchant namespace in private Vercel Blob. Claiming another merchant's filename cannot establish ownership. Actual cloud Blob/OIDC behavior still needs deployment verification.
-- Cloud startup requires authentication, managed PostgreSQL, no automatic seeding and private Blob storage. Cloud seed/reset controls are blocked, API responses are private/non-cacheable, and process-local snapshots are disabled. Uploads are capped at 4 MB.
+- Cloud startup requires authentication, managed PostgreSQL, no automatic seeding and private Blob storage. Sample seed/reset API routes are removed, API responses are private/non-cacheable, and process-local snapshots are disabled. Uploads are capped at 4 MB; receipt photos must decode as JPEG, PNG or WebP (up to 25 megapixels). HEIC requires conversion first.
 - Cloud database connections verify the server certificate. The original Supabase tables have RLS enabled with no browser-access policies; read-only anonymous/authenticated role checks returned no rows. The backend's database role bypasses RLS, so API merchant filtering remains essential; a least-privilege role is follow-up work.
 - Monetary values are stored as integer paisa; confirmed entries drive all metrics.
 - Credit repayments settle oldest outstanding sales first (FIFO).
@@ -146,12 +146,12 @@ The repository intentionally excludes local databases, uploads, environment secr
 
 ## Current verification
 
-- 211 backend tests pass, including product-boundary, chatbot, upload ownership, release guards, safe fallback diagnostics, evidence claims and single-connection concurrency regressions.
+- The latest full backend suite passes, including product-boundary, chatbot, upload ownership, real-provider fallback, specific failure messages, invalid-image rejection and single-connection concurrency regressions. See the ledger for the measured count.
 - The Next.js production build passes.
 - The frontend production dependency audit and installed Python dependency audit report zero known vulnerabilities after compatible patches. Eight frontend development-tool findings remain tracked. These audits are not a security guarantee.
 - 15 desktop/tablet/mobile product-route checks and a 27-check browser story pass in an isolated local demo.
 
-Verified on 10 October 2026. The local story covers confirm-once, credit/repayment, refreshed balances, named-month and Urdu questions, unsupported requests, reminder copy, CSV and failure recovery. The original question audit passes 26/26 (previously 12/26). The actual hosted test account passed Gemini extraction/confirmation of one synthetic English PKR 5,000 credit receipt and a PKR 2,000 manual repayment: Ask and ledger agree on PKR 3,000 outstanding, with PKR 5,500 October sales including the separate PKR 500 cash test. That original cash entry survived redeployment. Groq text probes were rate-limited (429). Real microphone/Urdu photo quality, two-account isolation and durable receipt reopening remain separate checks. See the [implementation ledger](docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) and [booth runbook](docs/REGIONAL_DEMO_RUNBOOK.md). The earlier deck still needs its regional update.
+Verification is recorded on 10 October 2026. Earlier hosted synthetic entries demonstrated PKR 3,000 remaining udhaar after a PKR 5,000 credit sale and PKR 2,000 repayment; original receipt reopening and persistence across deployment were checked. Fresh real-provider tests passed credit/ambiguous-transfer images through both Groq and Gemini, plus generated English voice through Groq. Groq temporarily reached its token-per-minute limit; Gemini previously returned intermittent 503s. These checks do not guarantee API availability, arbitrary photo quality or human microphone/dialect accuracy. See the [implementation ledger](docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md), [plain-language changes](docs/LATEST_CHANGES.md) and [booth runbook](docs/REGIONAL_DEMO_RUNBOOK.md). The earlier deck still needs its regional update.
 
 ## Scope boundary
 

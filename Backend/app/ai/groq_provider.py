@@ -1,4 +1,4 @@
-"""Groq: configured text model and multilingual Whisper; Gemini handles receipts."""
+"""Groq: Qwen text/receipt vision and multilingual Whisper, with real fallback."""
 from __future__ import annotations
 
 import asyncio
@@ -42,7 +42,6 @@ def _mime_to_ext(mime: str) -> str:
 
 class GroqProvider:
     name = "groq"
-    unsupported_capabilities = {"extract_event_from_image"}
 
     def __init__(self) -> None:
         self.client = AsyncGroq(api_key=settings.groq_api_key)
@@ -72,7 +71,9 @@ class GroqProvider:
         try:
             response = await asyncio.wait_for(
                 self.client.chat.completions.create(
-                    model=settings.groq_vision_model,
+                    model=settings.receipt_vision_model,
+                    response_format={"type": "json_object"},
+                    max_completion_tokens=1024,
                     messages=[
                         {
                             "role": "user",
@@ -128,7 +129,13 @@ class GroqProvider:
         return normalize_extraction(parse_json_object(raw))
 
     async def extract_event_from_image(self, image: bytes, mime: str, today: date, *, repair_hint: str = "") -> ExtractionResult:
-        raise ProviderError("Receipt vision is not implemented by this Groq integration; configure Gemini.")
+        from app.ai.gemini_provider import _compress_image
+        prepared, prepared_mime = _compress_image(image, mime)
+        instruction = prompts.receipt_system(today) + "\n\n" + prompts.RECEIPT_USER_INSTRUCTION
+        if repair_hint:
+            instruction += "\n\n" + repair_hint
+        raw = await self._chat_vision(instruction, prepared, prepared_mime)
+        return normalize_extraction(parse_json_object(raw))
 
     async def interpret_question(self, question: str, today: date, *, repair_hint: str = "") -> ToolCall:
         raw = await self._chat_text(prompts.question_system(today), question, repair_hint=repair_hint)

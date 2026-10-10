@@ -63,14 +63,17 @@ export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
       return;
     }
 
-    // --- Dev/demo fallback (no Supabase configured) ---
-    window.localStorage.setItem("karobaar-demo-session", JSON.stringify({ email, merchant: form.get("business") || "Al-Hassan General Store" }));
-    window.setTimeout(() => router.push("/dashboard"), 550);
+    // A missing auth configuration must not simulate a successful sign-in.
+    setError("Sign-in is not configured on this server. Please contact the team.");
+    setLoading(false);
   }
 
   return (
-    <main className="grid min-h-screen bg-[#f6f9f7] lg:grid-cols-[.9fr_1.1fr]">
+    <main className="auth-screen grid min-h-screen bg-[#f6f9f7] lg:grid-cols-[.9fr_1.1fr]">
       <section className="relative hidden overflow-hidden bg-[#052d25] p-12 text-white lg:flex lg:flex-col">
+        <div className="auth-proof-scene" aria-hidden="true">
+          <div className="auth-proof-orbit"><span className="auth-proof-sheet"><i /><i /><i /><b>✓</b></span><span className="auth-proof-sheet auth-proof-sheet-back"><i /><i /><i /></span><span className="auth-proof-wave">▂ ▅ ▃ ▇ ▄ ▂ ▅</span></div>
+        </div>
         <Link href="/"><BrandLogo inverse /></Link>
         <div className="my-auto max-w-lg"><BrandSymbol className="h-24 w-24 text-white/12" /><h1 className="mt-8 font-display text-6xl leading-[.98]">Every shop has a story.<br /><span className="text-[#67ddb9]">Now it has proof.</span></h1><p className="mt-7 max-w-md text-lg leading-8 text-white/62">Build a trusted financial memory from the voice notes, receipts, and customer relationships you already use.</p><div className="mt-10 space-y-4">{["Merchant-confirmed ledger entries", "Answers grounded in your records", "Financing readiness without invented claims"].map((item) => <p key={item} className="flex items-center gap-3 text-sm font-bold text-white/78"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#67ddb9] text-[#052d25]"><Check size={14} /></span>{item}</p>)}</div></div>
         <p className="text-xs text-white/38">Financial evidence designed for Pakistani small businesses.</p>
@@ -85,14 +88,14 @@ export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
 
           <form onSubmit={submit} className="mt-8 space-y-4">
             {mode === "signup" ? <><label className="block text-xs font-extrabold text-[#5d7069]">Your name<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><UserRound size={18} className="text-[#758781]" /><input name="name" required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Ali Hassan" /></span></label><label className="block text-xs font-extrabold text-[#5d7069]">Business name<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><Store size={18} className="text-[#758781]" /><input name="business" required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Al-Hassan General Store" /></span></label><label className="block text-xs font-extrabold text-[#5d7069]">Mobile number<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><Phone size={18} className="text-[#758781]" /><input name="phone" required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="03XX XXXXXXX" /></span></label></> : null}
-            <label className="block text-xs font-extrabold text-[#5d7069]">Email address<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><Mail size={18} className="text-[#758781]" /><input name="email" type="email" required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="you@business.com" /></span></label>
-            <label className="block text-xs font-extrabold text-[#5d7069]">Password<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><LockKeyhole size={18} className="text-[#758781]" /><input name="password" type={showPassword ? "text" : "password"} required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Minimum 6 characters" /><button type="button" onClick={() => setShowPassword((value) => !value)} className="text-[#6d7e78]" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
-            {error ? <p className="rounded-md bg-[#fff0ed] px-3 py-2 text-xs font-bold text-[#b74739]">{error}</p> : null}
+            <label className="block text-xs font-medium text-[#5d7069]">Email address<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><Mail size={18} className="text-[#758781]" /><input name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="you@business.com" /></span></label>
+            <label className="block text-xs font-medium text-[#5d7069]">Password<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><LockKeyhole size={18} className="text-[#758781]" /><input name="password" autoComplete={mode === "signin" ? "current-password" : "new-password"} type={showPassword ? "text" : "password"} required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Minimum 6 characters" /><button type="button" onClick={() => setShowPassword((value) => !value)} className="text-[#6d7e78]" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
+            {error ? <p role="alert" className="rounded-md bg-[#fff0ed] px-3 py-2 text-xs font-medium text-[#b74739]">{error}</p> : null}
             {notice ? <p role="status" className="rounded-md bg-[#e6f5ee] px-3 py-3 text-sm leading-6 text-[#08775b]">{notice} <Link href="/signin" className="font-extrabold underline underline-offset-4">Sign in</Link></p> : null}
             <button disabled={loading} className="flex min-h-12 w-full items-center justify-center rounded-md bg-[#073c31] text-sm font-extrabold text-white disabled:opacity-60">{loading ? "Opening your workspace..." : mode === "signin" ? "Sign in" : "Create account"}</button>
           </form>
           <p className="mt-6 text-center text-sm text-[#6d7e78]">{mode === "signin" ? "New to Karobaar?" : "Already have an account?"} <Link className="font-extrabold text-[#08775b] underline underline-offset-4" href={mode === "signin" ? "/signup" : "/signin"}>{mode === "signin" ? "Create account" : "Sign in"}</Link></p>
-          <p className="mt-8 border-t border-[#dce6e1] pt-5 text-center text-[11px] leading-5 text-[#84938e]">{isAuthEnabled ? "Secured by Supabase authentication." : "Hackathon demo mode — no real authentication. Add Supabase credentials to enable real sign-in."}</p>
+          <p className="mt-8 border-t border-[#dce6e1] pt-5 text-center text-[11px] leading-5 text-[#84938e]">{isAuthEnabled ? "Your account is secured by Supabase authentication." : "Sign-in is unavailable until the server is configured."}</p>
         </div>
       </section>
     </main>

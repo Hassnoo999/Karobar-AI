@@ -27,6 +27,23 @@ _FENCE_RE = re.compile(r"```[a-zA-Z]*\s*(.*?)```", re.DOTALL)
 class ProviderError(Exception):
     """A provider could not be reached or rejected the request (network, auth, rate limit, timeout)."""
 
+    def __init__(self, message: str, *, category: str = "unavailable") -> None:
+        super().__init__(message)
+        self.category = category
+
+
+# Only application-owned messages may cross the public API boundary.
+AI_FAILURE_MESSAGES = {
+    "unavailable": "The AI service is temporarily unavailable. Retry this capture or enter the details manually. No entry was saved.",
+    "busy": "The AI service is busy right now. Wait a moment and retry this capture, or enter the details manually. No entry was saved.",
+    "rate_limit": "The AI service's request limit was reached. Wait and retry, or use manual entry. The team may need to check its API quota. No entry was saved.",
+    "configuration": "AI recognition could not start because of an API configuration or access problem. Please let the team know; manual entry is available. No entry was saved.",
+    "not_configured": "No real AI provider is configured for this capture. Please let the team know or enter the details manually. No entry was saved.",
+    "timeout": "AI recognition took too long. Retry this capture or enter the details manually. No entry was saved.",
+    "invalid_output": "The AI could not return a usable result. Try a clearer photo or recording, retry, or enter the details manually. No entry was saved.",
+    "no_speech": "No speech was recorded. Please record a clear transaction or enter it manually. No entry was saved.",
+}
+
 
 class TranscriptResult(BaseModel):
     provider: str = ""

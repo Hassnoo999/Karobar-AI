@@ -26,7 +26,7 @@ npm run dev
 
 Open `http://localhost:3000`. The FastAPI backend should run at `http://localhost:8000`.
 
-For the local single-shop demo, leave the two Supabase values empty. The app will connect to the backend's `demo` merchant. For any shared deployment, configure both values and enable `REQUIRE_AUTH=true` in the backend.
+For a loopback-only development workspace, leave the two Supabase values empty and open `/dashboard` directly. The backend must use `REQUIRE_AUTH=false` locally; this is not a sign-in simulation. For every shared deployment, configure both values and enable `REQUIRE_AUTH=true` in the backend.
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api
@@ -48,13 +48,13 @@ npm audit --omit=dev
 - Product screens share one `/api/combined` snapshot. Confirmation and Refresh reload it; changing accounts clears the snapshot and remounts private drafts/chat state.
 - Customer balances and evidence figures come from full-history backend aggregates, not the latest 200 loaded entries.
 - Ledger pagination and entry filters/export apply to the loaded window; a notice appears when older entries are not loaded.
-- Network errors do not automatically substitute sample figures or chatbot answers. Users can explicitly choose a clearly labeled, read-only sample preview and reconnect later.
+- Network errors never substitute sample figures or chatbot answers. The sample preview has been removed; users retry the real connection instead.
 - When Supabase is configured, protected routes wait for the restored session and redirect unauthenticated visitors to `/signin`.
 - Signup opens the dashboard only when Supabase issues a session. If email confirmation is required, the page tells the user to check email and return to sign in; it does not pretend an unconfirmed account is signed in.
 - The frontend preserves missing fields, zero/unknown confidence, duplicate flags and provider/source labels. Invalid drafts cannot be confirmed; failed saves retain the draft.
 - Manual entry uses the same confirmation/accounting path and carries no invented AI confidence.
 - Voice and receipt uploads are capped at 4 MB. Use short recordings; larger direct uploads are not implemented in this release.
-- Voice/receipt capture rejects Demo AI drafts. Real-provider failures show an error and manual-entry guidance; read-only sample previews remain separate from live capture.
+- Voice/receipt capture rejects Demo AI drafts. Real-provider failures distinguish quota, busy service, timeout, configuration and unusable output. Retry keeps the selected file; manual entry remains available. JPEG, PNG and WebP are supported; export HEIC first.
 - Review shows the real speech/extraction provider, transcript and AI uncertainty notes. Missing receipt dates/types remain editable and block confirmation; incoming transfers are not assumed to be udhaar repayments.
 - Recording chooses a supported browser MIME/container, handles microphone errors and rejects empty/very short recordings. Decodable digital silence is checked before upload; real-room/dialect quality still requires human rehearsal.
 - Financing panels show source references only. Unsupported qualification thresholds are removed from the backend catalogue; current terms must be checked with the institution.
@@ -67,9 +67,11 @@ The five product screens now use a shared forest/mint design with responsive nav
 
 Saved receipt-linked rows now have a **View receipt** action. The dialog loads through the authenticated API, supports original-image download and handles unavailable/unsupported previews. Closing, navigation or an account switch aborts pending reads and releases the temporary image URL. It does not publish a private storage link. TypeScript and the 11-page production build pass; hosted reopening is checked separately in the ledger.
 
-The latest capture pass has a clean TypeScript/11-page production build and **237 passing backend tests**. Real API checks cover synthetic English speech, Roman Urdu credit/repayment text, cash/credit receipts and an ambiguous transfer. Earlier 15 responsive route checks, 27-check browser story and 26/26 question audit are separate checkpoints, not fresh microphone/dialect proof. Eight development-tool dependency findings remain tracked. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) for hosted results and remaining gates. Do not treat offline checks as a public-release sign-off.
+The resumed repair has a clean TypeScript/11-page production build and **249 passing backend tests**. Both real image providers passed synthetic credit and ambiguous-transfer checks; generated English voice passed Groq. Local desktop/mobile checks show the Ask input remains visible and sign-in has no nested input border. Earlier responsive/story/question audits are separate checkpoints, not fresh microphone/dialect proof. Eight development-tool dependency findings remain tracked. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) for hosted results and remaining gates.
 
 The root `vercel.json` deploys both services together. Cloud frontend settings use `NEXT_PUBLIC_API_BASE_URL=/api` and the original Supabase public URL/anon key. Private database, JWT and AI keys belong only in server-side Vercel environment variables—never in a `NEXT_PUBLIC_` variable or GitHub.
+
+The resumed repair adds a bounded chat grid that keeps the question composer visible, clean single-ring sign-in fields and calmer typography. The sign-in background uses CSS perspective/transform animation only, with reduced-motion support; no new graphics dependency is installed. Missing Supabase configuration no longer fabricates a successful sign-in. Landing links now lead to real account creation/sign-in, not an alternate sample workspace. Latest release results are recorded in [plain-language changes](../docs/LATEST_CHANGES.md).
 
 ## Technology
 

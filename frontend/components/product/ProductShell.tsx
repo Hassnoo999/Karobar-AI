@@ -28,11 +28,11 @@ export function ProductShell({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const dialog = useRef<HTMLDialogElement>(null);
   const {user, signOut, authEnabled, loading} = useAuth();
-  const {connection, dashboard, source_counts, error, refreshing, refresh, previewDemo} = useProductData();
+  const {connection, dashboard, source_counts, error, refreshing, refresh} = useProductData();
   const current = navigation.find(item => item.href === pathname)?.label ?? "Workspace";
-  const storeName = typeof user?.user_metadata?.business_name === "string" ? user.user_metadata.business_name : authEnabled ? "Your business" : "Demo general store";
+  const storeName = typeof user?.user_metadata?.business_name === "string" ? user.user_metadata.business_name : authEnabled ? "Your business" : "Local workspace";
   const initials = storeName.split(" ").filter(Boolean).map((word: string) => word[0]).join("").slice(0, 2).toUpperCase();
-  const sampleLedger = connection === "demo" || (source_counts?.seed ?? 0) > 0;
+  const sampleLedger = (source_counts?.seed ?? 0) > 0;
 
   useEffect(() => {
     if (!loading && authEnabled && !user) router.replace("/signin");
@@ -52,7 +52,7 @@ export function ProductShell({children}: {children: React.ReactNode}) {
     <div className="mt-auto pt-8">
       <div className="mb-5 rounded-xl border border-white/10 bg-white/[.04] p-4"><ShieldCheck size={20} className="mb-3 text-[#a3d5b0]" /><p className="text-xs font-semibold text-[#d5e5da]">Your records. Your decision.</p><p className="mt-2 text-[11px] leading-5 text-[#96b2a1]">AI proposes an entry. You review it before it reaches the ledger.</p></div>
       <Link href="/#process" className="flex min-h-11 items-center gap-3 px-3 text-xs text-[#a9c0b0]"><CircleHelp size={17} /> How it works <ArrowUpRight size={13} className="ml-auto" /></Link>
-      <button onClick={leave} className="flex min-h-11 w-full items-center gap-3 px-3 text-xs text-[#a9c0b0]"><LogOut size={17} />{authEnabled ? "Sign out" : "Exit local demo"}</button>
+      <button onClick={leave} className="flex min-h-11 w-full items-center gap-3 px-3 text-xs text-[#a9c0b0]"><LogOut size={17} />{authEnabled ? "Sign out" : "Close workspace"}</button>
     </div>
   </>;
 
@@ -72,8 +72,7 @@ export function ProductShell({children}: {children: React.ReactNode}) {
         </div>
       </header>
       <main id="workspace-content" key={pathname} className="route-page-enter mx-auto max-w-[1500px] px-4 pb-[100px] pt-6 md:px-8 md:pt-8 lg:pb-10">
-        {connection === "error" ? <div role="alert" className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-[#eddbb8] bg-[#fffaed] p-4"><div className="min-w-[180px] flex-1"><p className="text-sm font-semibold text-[#795724]">Connection needs attention</p><p className="mt-1 text-xs leading-5 text-[#876c42]">{error} Any previously loaded totals may be out of date.</p></div><button onClick={() => void refresh()} disabled={refreshing} className="ui-button-secondary"><RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /> Retry</button><button onClick={previewDemo} className="ui-button-quiet">Preview sample data</button></div> : null}
-        {connection === "demo" ? <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#eddbb8] bg-[#fffaed] px-4 py-3"><p className="text-xs leading-5 text-[#876c42]"><strong>Read-only sample preview.</strong> Illustrative records, not your saved ledger. Capture and AI questions are disabled.</p><button onClick={() => void refresh()} disabled={refreshing} className="ui-button-quiet"><RefreshCw size={14} /> Reconnect</button></div> : null}
+        {connection === "error" ? <div role="alert" className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-[#eddbb8] bg-[#fffaed] p-4"><div className="min-w-[180px] flex-1"><p className="text-sm font-semibold text-[#795724]">Connection needs attention</p><p className="mt-1 text-xs leading-5 text-[#876c42]">{error} Any previously loaded totals may be out of date.</p></div><button onClick={() => void refresh()} disabled={refreshing} className="ui-button-secondary"><RefreshCw size={14} className={refreshing ? "animate-spin" : ""} /> Retry</button></div> : null}
         {children}
       </main>
     </div>

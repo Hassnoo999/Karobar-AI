@@ -11,7 +11,7 @@ import logging
 import wave
 from typing import Any
 
-from app.ai.base import ProviderError
+from app.ai.base import AI_FAILURE_MESSAGES, ProviderError
 from app.ai.demo_provider import DemoProvider
 from app.ai.gemini_provider import GeminiProvider
 from app.ai.groq_provider import GroqProvider
@@ -29,6 +29,21 @@ def _failure_status(exc: Exception) -> int | None:
             return value
     return None
 
+def _failure_category(exc: Exception) -> str:
+    if isinstance(exc, ValueError):
+        return "invalid_output"
+    status = _failure_status(exc)
+    if status == 429:
+        return "rate_limit"
+    if status in {400, 401, 403, 404, 422}:
+        return "configuration"
+    if status in {502, 503, 504}:
+        return "busy"
+    if isinstance(exc.__cause__, TimeoutError) or type(exc.__cause__).__name__ in {"APITimeoutError", "ReadTimeout", "ConnectTimeout"}:
+        return "timeout"
+    return getattr(exc, "category", "unavailable")
+
+
 REPAIR_HINT = (
     "IMPORTANT: Your previous reply was not a single valid JSON object. "
     "Reply again with ONLY the JSON object — no explanations, no markdown fences."
@@ -43,7 +58,7 @@ class FallbackAdapter:
         return [p.name for p in self.providers]
 
     async def _call(self, method_name: str, /, *args: Any, **kwargs: Any) -> Any:
-        last_error: Exception = ProviderError("no provider configured")
+        last_error: Exception = ProviderError("no provider configured", category="not_configured")
         for provider in self.providers:
             if method_name in getattr(provider, "unsupported_capabilities", ()):
                 continue
@@ -73,9 +88,8 @@ class FallbackAdapter:
                     break
                 result.provider = provider.name
                 return result
-        raise ProviderError(
-            "No real AI provider could complete this capture. Please try again or enter the transaction manually."
-        ) from last_error
+        category = _failure_category(last_error)
+        raise ProviderError(AI_FAILURE_MESSAGES.get(category, AI_FAILURE_MESSAGES["unavailable"]), category=category) from last_error
 
     # --- capability facade ---------------------------------------------------
 
@@ -88,7 +102,7 @@ class FallbackAdapter:
                     samples = recording.readframes(recording.getnframes())
                     silent_value = 128 if recording.getsampwidth() == 1 else 0
                     if not samples or all(sample == silent_value for sample in samples):
-                        raise ProviderError("No speech was recorded. Please record a clear transaction or enter it manually.")
+                        raise ProviderError(AI_FAILURE_MESSAGES["no_speech"], category="no_speech")
             except (wave.Error, EOFError):
                 # Other supported encodings still go through the real provider.
                 pass

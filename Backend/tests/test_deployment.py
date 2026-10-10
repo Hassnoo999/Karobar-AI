@@ -88,7 +88,7 @@ def test_api_responses_never_enter_shared_cache(client):
 @pytest.mark.parametrize("route", ["/api/demo/seed", "/api/demo/reset"])
 def test_deployed_demo_controls_cannot_change_ledger(seeded_client, monkeypatch, route):
     monkeypatch.setattr(settings, "environment", "production")
-    assert seeded_client.post(route).status_code == 403
+    assert seeded_client.post(route).status_code == 404
     assert seeded_client.get("/api/combined").json()["summary"]["record_count"] == 63
 
 

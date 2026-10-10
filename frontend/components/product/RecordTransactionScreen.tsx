@@ -41,6 +41,7 @@ export function RecordTransactionScreen() {
   const [duplicateReviewed, setDuplicateReviewed] = useState(false);
   const [preview, setPreview] = useState("");
   const input = useRef<HTMLInputElement>(null);
+  const retryCapture = useRef<{kind: "voice" | "receipt"; file: File} | null>(null);
   const review = useRef<HTMLElement>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const stream = useRef<MediaStream | null>(null);
@@ -76,6 +77,7 @@ export function RecordTransactionScreen() {
     generation.current += 1;
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
     previewUrl.current = "";
+    retryCapture.current = null;
     setPreview(""); setSourceName(""); setError(""); setDraft(null); setDuplicateReviewed(false); setStatus("idle"); setMode(nextMode);
     if (input.current) input.current.value = "";
   }
@@ -85,6 +87,7 @@ export function RecordTransactionScreen() {
     setSourceName("Manual entry"); setStatus("review");
   }
   async function processFile(kind: "voice" | "receipt", file: File) {
+    retryCapture.current = {kind, file};
     if (!file.size) {setError("This capture is empty. Please record again or choose another photo."); setStatus("error"); return;}
     if (file.size > 4 * 1024 * 1024) {setError(kind === "receipt" ? "Choose a receipt smaller than 4 MB." : "Keep voice notes under 4 MB. Try a shorter recording."); setStatus("error"); return;}
     const request = ++generation.current;
@@ -102,7 +105,7 @@ export function RecordTransactionScreen() {
       setDraft({...result.event, ai_provider: result.event.ai_provider ?? result.provider}); setStatus("review");
     } catch (err) {
       if (request !== generation.current) return;
-      setError(err instanceof Error ? err.message : "Could not read this capture. Try again or enter it manually."); setStatus("error");
+      setError(err instanceof Error && err.message !== "Failed to fetch" ? err.message : "The capture could not reach the server. Check your connection and retry; no entry was saved."); setStatus("error");
     }
   }
   async function startRecording() {
@@ -168,9 +171,9 @@ export function RecordTransactionScreen() {
         <div className="grid grid-cols-3 gap-1 border-b border-[#e7ede4] p-2" aria-label="Capture method">{(["voice", "receipt", "manual"] as Mode[]).map(item => <button key={item} onClick={() => item === "manual" ? manual() : reset(item)} disabled={busy || status === "review" || connection !== "live"} aria-pressed={mode === item} className={"flex min-h-11 items-center justify-center gap-2 rounded-lg text-xs font-medium " + (mode === item ? "bg-[#e8f2e5] text-[#326c44]" : "text-[#627258]")}>{item === "voice" ? <Mic2 size={16} /> : item === "receipt" ? <Camera size={16} /> : <PenLine size={16} />}{item === "voice" ? "Voice" : item === "receipt" ? "Receipt" : "Manual"}</button>)}</div>
         <div className="px-6 py-7 text-center">
           <h2 className="!text-lg">{mode === "voice" ? "Say it the way you would." : mode === "receipt" ? "Keep the receipt. Capture the details." : "A simple, honest fallback."}</h2>
-          <p className="mx-auto mt-2 max-w-xs text-xs leading-6 text-[#627258]">{mode === "voice" ? 'Urdu, English or mixed speech. Try: “Naveed ne 5,000 rupay ka saman udhaar liya.” · One transaction, up to 4 MB.' : mode === "receipt" ? "JPEG, PNG, WebP or HEIC · up to 4 MB. Keep the total and date clearly visible." : "Enter the facts yourself. No AI confidence is assigned to a manual entry."}</p>
+          <p className="mx-auto mt-2 max-w-xs text-xs leading-6 text-[#627258]">{mode === "voice" ? 'Urdu, English or mixed speech. Try: “Naveed ne 5,000 rupay ka saman udhaar liya.” · One transaction, up to 4 MB.' : mode === "receipt" ? "JPEG, PNG or WebP · up to 4 MB. Keep the total and date clearly visible. Export HEIC photos as JPEG first." : "Enter the facts yourself. No AI confidence is assigned to a manual entry."}</p>
           {mode === "voice" ? <div className="py-8"><button onClick={() => status === "recording" ? recorder.current?.stop() : void startRecording()} disabled={status !== "recording" && !canCapture} className={"mx-auto grid h-28 w-28 place-items-center rounded-full border-8 border-[#edf4e8] text-white shadow-[0_8px_32px_rgba(41,91,58,.1)] " + (status === "recording" ? "record-pulse bg-[#b56049]" : "bg-[#336d48]")} aria-label={status === "recording" ? "Stop recording" : "Start voice recording"}>{status === "recording" ? <Square size={28} fill="currentColor" /> : <Mic2 size={34} strokeWidth={1.5} />}</button><p aria-live="polite" className="mt-4 text-xs font-medium text-[#496b50]">{status === "recording" ? "Listening… tap to stop" : status === "extracting" ? "Reading your capture…" : "Tap to speak · Urdu or Roman Urdu"}</p></div> : mode === "receipt" ? <button onClick={() => input.current?.click()} disabled={!canCapture} className="my-6 flex min-h-[168px] w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#c6dbc4] bg-[#f7faf3] text-sm text-[#527552]"><Upload size={25} strokeWidth={1.4} /><span>Choose a receipt photo</span><span className="text-xs text-[#627258]">Your original is retained as evidence</span></button> : <div className="my-8 flex justify-center"><PenLine size={35} className="text-[#627258]" strokeWidth={1.3} /></div>}
-          <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" className="hidden" aria-label="Receipt photo" onChange={event => {const file = event.target.files?.[0]; if (file) void processFile("receipt", file);}} />
+          <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" aria-label="Receipt photo" onChange={event => {const file = event.target.files?.[0]; if (file) void processFile("receipt", file);}} />
           {mode === "voice" ? <button onClick={() => {reset("receipt"); input.current?.click();}} disabled={!canCapture} className="ui-button-secondary w-full"><FileImage size={16} /> Use a receipt instead</button> : null}
           {status === "review" ? <p className="mt-4 text-xs text-[#627258]">Finish or discard this draft before another capture.</p> : null}
         </div>
@@ -180,7 +183,7 @@ export function RecordTransactionScreen() {
       <section ref={review} className="ui-card scroll-mt-24 overflow-hidden" aria-labelledby="review-title">
         <div className="ui-section-heading"><div><h2 id="review-title">{status === "saved" ? "Confirmed in your ledger" : "Review your entry"}</h2><p>{status === "saved" ? "The ledger now includes this transaction." : "Correct anything the AI missed."}</p></div><span className={"ui-badge " + (status === "saved" ? "badge-green" : status === "review" ? "badge-amber" : "badge-neutral")}>{status === "saved" ? "Saved" : status === "review" ? "Needs your review" : status === "extracting" ? "Extracting" : "Awaiting capture"}</span></div>
         {error ? <div role="alert" className="m-5 rounded-xl border border-[#edcfc1] bg-[#fff6f0] p-4 text-xs leading-5 text-[#a55e43]">{error}</div> : null}
-        {status === "idle" || status === "preparing" || status === "recording" || status === "error" ? <div className="grid min-h-[300px] place-items-center px-6 py-10 text-center"><div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f0f5ea] text-[#627258]"><FileImage size={24} strokeWidth={1.3} /></span><p className="mt-5 text-sm font-medium">{status === "error" ? "No entry was saved." : status === "preparing" ? "Waiting for microphone permission…" : "A clear draft, before a real entry."}</p><p className="mx-auto mt-2 max-w-xs text-xs leading-6 text-[#627258]">Customer, amount, date and transaction type will appear here for you to check.</p>{status === "error" ? <button className="ui-button-secondary mt-5" onClick={() => reset()}><RotateCcw size={14} /> Try again</button> : null}</div></div> : null}
+        {status === "idle" || status === "preparing" || status === "recording" || status === "error" ? <div className="grid min-h-[300px] place-items-center px-6 py-10 text-center"><div><span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-[#f0f5ea] text-[#627258]"><FileImage size={24} strokeWidth={1.3} /></span><p className="mt-5 text-sm font-medium">{status === "error" ? "Your ledger is unchanged." : status === "preparing" ? "Waiting for microphone permission…" : "A clear draft, before a real entry."}</p><p className="mx-auto mt-2 max-w-xs text-xs leading-6 text-[#627258]">{status === "error" ? "Retry the same capture, choose a new one, or enter the facts yourself." : "Customer, amount, date and transaction type will appear here for you to check."}</p>{status === "error" ? <div className="mt-5 flex flex-wrap justify-center gap-2"><button disabled={connection !== "live"} className="ui-button-secondary" onClick={() => {const capture = retryCapture.current; if (capture) void processFile(capture.kind, capture.file); else reset();}}><RotateCcw size={14} /> Retry capture</button><button className="ui-button-quiet" onClick={() => reset()}>Choose another</button><button disabled={connection !== "live"} className="ui-button-quiet" onClick={manual}>Enter manually</button></div> : null}</div></div> : null}
         {status === "extracting" || status === "saving" ? <div role="status" className="grid min-h-[300px] place-items-center p-10 text-center"><div><span className="mx-auto block h-9 w-9 animate-spin rounded-full border-2 border-[#deead7] border-t-[#478259]" /><p className="mt-5 text-sm font-medium">{status === "saving" ? "Saving your confirmed entry…" : "Extracting the details…"}</p><p className="mt-2 text-xs text-[#627258]">Your ledger is unchanged until confirmation.</p></div></div> : null}
         {draft && (status === "review" || status === "saved") ? <div className="p-5 md:p-6">
           <div className="mb-5 flex items-center gap-3 rounded-xl bg-[#f6f8f0] p-3">

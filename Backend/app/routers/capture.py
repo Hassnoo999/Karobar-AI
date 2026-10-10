@@ -18,6 +18,7 @@ from app.schemas.capture import DraftEvent, ExtractTextRequest, TranscriptRespon
 from app.schemas.events import SourceType
 from app.services.ledger import build_draft
 from app.services.evidence_storage import discard_receipt, store_receipt
+from app.services.receipt_validation import validate_receipt_image
 
 router = APIRouter(prefix="/capture", tags=["capture"])
 
@@ -82,7 +83,7 @@ async def extract_text(
 @router.post("/extract-receipt", response_model=DraftEvent)
 async def extract_receipt(
     db: Session = Depends(get_db),
-    file: UploadFile = File(..., description="Receipt photo (jpg, png, webp, heic)"),
+    file: UploadFile = File(..., description="Receipt photo (JPEG, PNG or WebP; export HEIC first)"),
     merchant_id: str = Depends(get_merchant_id),
 ):
     image = await file.read(MAX_IMAGE_BYTES + 1)
@@ -92,9 +93,10 @@ async def extract_receipt(
         raise DomainValidationError("image file too large (max 4 MB)")
     mime = _mime(file)
     if mime not in _IMAGE_EXTS:
-        raise DomainValidationError(f"unsupported image content type: {mime or 'unknown'} (use jpg, png, webp or heic)")
+        raise DomainValidationError(f"unsupported image content type: {mime or 'unknown'} (use JPEG, PNG or WebP; export HEIC first)")
 
     from starlette.concurrency import run_in_threadpool
+    await run_in_threadpool(validate_receipt_image, image, mime)
     filename = await run_in_threadpool(store_receipt, image, _IMAGE_EXTS[mime], merchant_id)
 
     try:

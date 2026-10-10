@@ -79,7 +79,7 @@ def test_full_history_customer_balance_survives_200_row_limit(client, db):
     assert client.get("/api/customers").json()["customers"][0]["outstanding_paisa"] == 300000
 
 
-def test_canonical_mutations_and_reset_invalidate_snapshot(client):
+def test_canonical_mutations_invalidate_snapshot(client):
     assert client.get("/api/combined").json()["summary"]["record_count"] == 0
     response = client.post("/api/events", json={"event_type":"cash_sale", "amount_paisa":100,
                 "occurred_at":pkt_today().isoformat(), "source_type":"manual"})
@@ -89,10 +89,13 @@ def test_canonical_mutations_and_reset_invalidate_snapshot(client):
     assert client.get("/api/combined").json()["summary"]["total_sales"] == 2
     client.delete(f"/api/events/{event_id}")
     assert client.get("/api/combined").json()["summary"]["record_count"] == 0
-    client.post("/api/demo/seed")
-    seeded = client.get("/api/combined").json()
+    assert client.post("/api/demo/seed").status_code == 404
+    assert client.post("/api/demo/reset").status_code == 404
+    assert client.get("/api/combined").json()["summary"]["record_count"] == 0
+
+
+def test_offline_fixture_remains_truthfully_labelled(seeded_client):
+    seeded = seeded_client.get("/api/combined").json()
     assert seeded["summary"]["record_count"] == 63
     assert seeded["source_counts"]["seed"] == 63
     assert all(event["source"] == "seed" and event["confidence"] is None for event in seeded["events"])
-    client.post("/api/demo/reset")
-    assert client.get("/api/combined").json()["summary"]["record_count"] == 0
