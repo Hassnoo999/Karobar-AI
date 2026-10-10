@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.ai import get_adapter
 from app.ai.base import ProviderError
@@ -35,6 +36,12 @@ async def ask(payload: AskRequest, db: Session = Depends(get_db), merchant_id: s
         except ProviderError as exc:
             raise AIUnavailableError("Question interpretation is unavailable. Try a supported example.") from exc
 
+    # SQLAlchemy/psycopg2 is synchronous. One worker owns this session at a time;
+    # waiting for the pool must never block other requests' dependency cleanup.
+    return await run_in_threadpool(_ledger_answer, db, tool_call, payload.question, today, merchant_id)
+
+
+def _ledger_answer(db, tool_call, question, today, merchant_id):
     ambiguous = []
     if tool_call.tool == "customer_outstanding" and tool_call.args.get("name"):
         names = [row[0] for row in db.query(Customer.display_name).filter(Customer.merchant_id == merchant_id).all()]
@@ -47,4 +54,4 @@ async def ask(payload: AskRequest, db: Session = Depends(get_db), merchant_id: s
         data["reason"] = tool_call.args["reason"]
         if tool_call.args.get("clarify"):
             data["status"] = "needs_clarification"
-    return AskResponse(answer=render_answer(payload.question, tool_call.tool, data), tool_used=tool_call.tool, provider=tool_call.provider or "rules", data=data)
+    return AskResponse(answer=render_answer(question, tool_call.tool, data), tool_used=tool_call.tool, provider=tool_call.provider or "rules", data=data)

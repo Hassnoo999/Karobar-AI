@@ -102,6 +102,11 @@ def init_db() -> None:
 
 
 def get_db() -> Iterator[Session]:
+    """Request-scoped session; execute blocking SQL only in a worker thread.
+
+    Async routes offload their SQL phase and never share a session concurrently.
+    Read-only AI/Blob routes release their transaction before network waits.
+    """
     db = SessionLocal()
     try:
         yield db

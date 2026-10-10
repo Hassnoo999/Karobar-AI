@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
-from starlette.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from app.auth import get_merchant_id
@@ -19,12 +18,12 @@ router = APIRouter(prefix="/evidence", tags=["evidence"])
 
 
 @router.get("/passport", response_model=PassportResponse)
-async def passport(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def passport(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     return compute_passport(db, merchant_id=merchant_id)
 
 
 @router.get("/files/{filename}")
-async def receipt_evidence(
+def receipt_evidence(
     filename: str,
     db: Session = Depends(get_db),
     merchant_id: str = Depends(get_merchant_id),
@@ -40,7 +39,10 @@ async def receipt_evidence(
     )
     if owned is None:
         raise NotFoundError("evidence file not found")
-    image = await run_in_threadpool(read_receipt, filename, merchant_id)
+    # The ownership query is complete; do not monopolize the small cloud pool
+    # while downloading evidence. The receipt store rechecks its owner namespace.
+    db.close()
+    image = read_receipt(filename, merchant_id)
     mime = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".heic": "image/heic", ".heif": "image/heif"}.get(Path(filename).suffix, "application/octet-stream")
     return Response(image, media_type=mime, headers={"Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff", "Content-Disposition": f'inline; filename="{filename}"'})

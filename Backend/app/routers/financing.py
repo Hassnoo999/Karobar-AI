@@ -20,5 +20,5 @@ async def programs() -> list[Any]:
 
 
 @router.get("/readiness", response_model=list[ProgramReadiness])
-async def readiness(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def readiness(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     return evaluate_readiness(db, merchant_id=merchant_id)

@@ -7,7 +7,7 @@ Checked 10 October 2026. **Both services are live; authenticated capture/persist
 - Project: [`karobar-ai`](https://vercel.com/hassanbinsaqib01-5133s-projects/karobar-ai), in `hassanbinsaqib01-5133's projects`, Hobby plan.
 - Project ID: `prj_kYTi4ovRgqXzdJV6ACG5ll9ffT7M` (an identifier, not a credential).
 - GitHub connection: `Hassnoo999/Karobar-AI`; Vercel's Git settings show “Connected”. Release commit/push status is recorded in the implementation ledger.
-- Private receipt store: `karobar-ai-receipts`, `store_pIxxwbibXeqpr8D5`, Tokyo (`hnd1`). Creation succeeded; dashboard shows **Private**, empty storage and Hobby included quotas. No upgrade was selected. No receipt data was uploaded.
+- Private receipt store: `karobar-ai-receipts`, `store_pIxxwbibXeqpr8D5`, Tokyo (`hnd1`). At creation the dashboard showed **Private**, empty storage and Hobby included quotas. No upgrade was selected. A later user-uploaded draft was not confirmed; durable attachment/read proof remains pending.
 - Store connection created `BLOB_STORE_ID` / `BLOB_WEBHOOK_PUBLIC_KEY` in the project's Production and Preview environments. The optional long-lived read/write-token checkbox was left off; prefer the SDK's rotating OIDC authentication on Vercel. “Not Protected” on the store refers to its optional firewall badge, not public blob access.
 - With explicit user approval, the existing database URL, Supabase JWT secret and Groq/Gemini API keys are saved as **Production-only Secret variables**. The frontend key was checked to be public anon/publishable before saving as Production Config. No key values are included in this repository.
 - Vercel's bulk `.env` input unexpectedly reset its initial type/scope selections. The four private variables briefly saved as Config in Production and Preview; each was corrected and the saved Secret/Production list visibly verified before the credential-enabled rebuild. No Preview deployment was requested. Values were not printed or committed; this scope correction is not a credential rotation.
@@ -16,6 +16,7 @@ Checked 10 October 2026. **Both services are live; authenticated capture/persist
 - The first credential-enabled build exposed a SQLAlchemy driver mismatch (`psycopg` missing). Pushed fix `03a2a2e` pins the locally tested 2.0.52/psycopg2 stack; deployment `62ckvvXdUUdcPU5748ZTrMD9UauJ` reports Ready and actual runtime probes now pass.
 - The user signed up/signed in themselves. The new account loaded zero sales/expenses/udhaar from the actual API; no sample-preview fallback was used. Paid HTTP provider checks return 403, and responses carry `no-store, private`.
 - With explicit user approval, Supabase Site URL is the exact production origin and its sole additional redirect URL is `/signin` on that origin. Email-confirmation settings were not weakened; actual confirmation-email delivery was not tested.
+- A synthetic PKR 500 manual cash sale saved once in the user's new test account. Overlapping ledger reloads then exposed a one-connection QueuePool timeout: synchronous SQL in async routes blocked connection cleanup. Worker-thread SQL and early read-transaction release now pass 13 offline regressions, including a failing-before/passing-after reproduction. Hosted save/read persistence is not signed off until the fix is deployed and that original row reloads.
 
 ## In simple words
 

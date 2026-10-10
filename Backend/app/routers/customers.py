@@ -67,7 +67,7 @@ def _customer_out(db: Session, customer: Customer) -> CustomerOut:
 
 
 @router.get("", response_model=CustomerListResponse)
-async def list_customers(
+def list_customers(
     db: Session = Depends(get_db),
     merchant_id: str = Depends(get_merchant_id),
     q: str | None = Query(None, max_length=80, description="Case-insensitive name search"),
@@ -83,7 +83,7 @@ async def list_customers(
 
 
 @router.get("/{customer_id}", response_model=CustomerDetailResponse)
-async def get_customer(customer_id: int, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def get_customer(customer_id: int, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     customer = (
         db.query(Customer)
         .filter(Customer.merchant_id == merchant_id, Customer.id == customer_id)

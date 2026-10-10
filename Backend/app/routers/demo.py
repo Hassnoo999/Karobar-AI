@@ -20,14 +20,14 @@ def require_local_demo() -> None:
 
 
 @router.post("/seed", dependencies=[Depends(require_local_demo)])
-async def seed(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def seed(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     counts = load_seed(db, merchant_id=merchant_id)
     invalidate_product_cache(merchant_id)
     return {"status": "seeded", **counts}
 
 
 @router.post("/reset", dependencies=[Depends(require_local_demo)])
-async def reset(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def reset(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     db.query(BusinessEvent).filter(BusinessEvent.merchant_id == merchant_id).delete()
     db.query(Customer).filter(Customer.merchant_id == merchant_id).delete()
     db.commit()

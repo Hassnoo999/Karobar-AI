@@ -35,7 +35,7 @@ def create_event(payload: EventCreate, db: Session = Depends(get_db), merchant_i
 
 
 @router.get("", response_model=EventListResponse)
-async def list_events(
+def list_events(
     db: Session = Depends(get_db),
     merchant_id: str = Depends(get_merchant_id),
     event_type: EventType | None = None,
@@ -80,7 +80,7 @@ async def list_events(
 
 
 @router.get("/{event_id}", response_model=EventOut)
-async def get_event(event_id: int, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def get_event(event_id: int, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     row = (
         db.query(BusinessEvent, Customer.display_name)
         .outerjoin(Customer, BusinessEvent.customer_id == Customer.id)
@@ -93,13 +93,13 @@ async def get_event(event_id: int, db: Session = Depends(get_db), merchant_id: s
 
 
 @router.patch("/{event_id}", response_model=EventOut)
-async def patch_event(event_id: int, payload: EventUpdate, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def patch_event(event_id: int, payload: EventUpdate, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     event = update_event(db, event_id, payload, merchant_id=merchant_id)
     invalidate_product_cache(merchant_id)
     return event_to_out(event)
 
 
 @router.delete("/{event_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def remove_event(event_id: int, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def remove_event(event_id: int, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     delete_event(db, event_id, merchant_id=merchant_id)
     invalidate_product_cache(merchant_id)

@@ -142,7 +142,7 @@ Backend/
 ## Testing
 
 ```bash
-pytest            # 198 tests; fully offline (demo provider, in-memory SQLite, mocked Blob)
+pytest            # 211 tests; offline (demo/mock providers, isolated SQLite, mocked Blob)
 python scripts/eval_extractor.py   # extraction accuracy against the live chain
 python -m scripts.check_providers  # explicit paid checks; prints no raw provider errors
 python -m scripts.release_preflight --database # read-only TLS/RLS/grants inspection
@@ -153,7 +153,7 @@ Tests pin the seed dataset's designed outcomes: total outstanding **Rs 100,000**
 top debtor **Ahmed Rs 58,500** (oldest unpaid 45 days = overdue), credit sales
 **Rs 198,000**, recovered **Rs 98,000 (~49.5%)**.
 
-The regional checkpoints add 124 regressions to the original 74: bridge validation/precision/provenance, >200-row balances, frozen-clock question guards, upload ownership, evidence claims, safe provider-fallback diagnostics and cloud release safeguards. The original question audit passes 26/26. These offline checks do not verify deployed authentication or real cloud storage. Gemini text and synthetic English receipt extraction were checked separately; real microphone/Urdu photo quality remains unverified. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md).
+The regional checkpoints add 137 regressions to the original 74: bridge validation/precision/provenance, >200-row balances, question guards, upload ownership, evidence claims, safe provider diagnostics, cloud safeguards and overlapping requests with a one-connection pool. The original question audit passes 26/26. Offline checks are not live authentication/storage proof. Gemini text and synthetic English receipt extraction were checked separately; real microphone/Urdu photo quality remains unverified. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md).
 
 ## Receipt ownership and existing files
 
@@ -174,6 +174,8 @@ This local-only operation never overwrites a registered owner or changes ledger 
 The active repository-root `vercel.json` defines Next.js and FastAPI services under one domain; Python is pinned to 3.12. See the [Vercel deployment plan](../docs/VERCEL_DEPLOYMENT_PLAN.md) for current configuration and remaining release gates. Vercel/production startup rejects authentication-off, SQLite, auto-seeding or local-receipt settings. It never creates/seeds remote tables. The existing Supabase schema must already be provisioned.
 
 SQLAlchemy is pinned to the verified 2.0.52 release to match psycopg2. Do not casually replace this with an unbounded range: SQLAlchemy 2.1 changes the default PostgreSQL driver, and that mismatch caused a real hosted startup failure despite a successful build.
+
+Synchronous database endpoints run in worker threads. Async capture/Ask routes offload their SQL phase; reminder and receipt-download routes release read transactions before waiting for AI/storage. This prevents overlapping requests from blocking the event loop and starving the small cloud pool. Thirteen focused regressions cover overlapping reads, both reminder paths and receipt-download connection release; they are not a large-scale load test.
 
 Cloud Postgres verifies certificates using Supabase's public CA from Database Settings (not a credential), a bounded connection timeout, and a one-connection pool. The read-only preflight confirmed TLS, both tables' RLS, no browser-access policies, and zero visible rows for anon/authenticated roles. The current backend DB role bypasses RLS; replace it with a least-privilege role in follow-up work. No remote policies or records were changed.
 

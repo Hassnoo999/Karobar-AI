@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.ai import get_adapter
 from app.ai.base import ProviderError
@@ -68,7 +69,7 @@ async def extract_text(
         extraction = await get_adapter().extract_event_from_text(payload.text, pkt_today())
     except ProviderError as exc:
         raise AIUnavailableError(str(exc)) from exc
-    return build_draft(
+    return await run_in_threadpool(build_draft,
         db,
         extraction,
         source_type=SourceType.voice if source == "voice" else SourceType.manual,
@@ -101,7 +102,7 @@ async def extract_receipt(
     except ProviderError as exc:
         await run_in_threadpool(discard_receipt, filename, merchant_id)
         raise AIUnavailableError(str(exc)) from exc
-    return build_draft(
+    return await run_in_threadpool(build_draft,
         db,
         extraction,
         source_type=SourceType.receipt,

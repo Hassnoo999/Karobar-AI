@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from app.ai import get_adapter
 from app.ai.base import ProviderError
@@ -236,7 +237,7 @@ async def understand_voice(
 
     from app.services.ledger import build_draft
 
-    draft = build_draft(
+    draft = await run_in_threadpool(build_draft,
         db, extraction,
         source_type=SourceType.voice,
         raw_input=transcript_result.text,
@@ -307,7 +308,7 @@ async def understand_receipt(
 
     from app.services.ledger import build_draft
 
-    draft = build_draft(
+    draft = await run_in_threadpool(build_draft,
         db, extraction,
         source_type=SourceType.receipt,
         raw_input=None,
@@ -338,7 +339,7 @@ async def understand_receipt(
 
 
 @router.get("/ledger/summary")
-async def ledger_summary(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def ledger_summary(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     dash = dashboard_bundle(db, merchant_id=merchant_id)
     record_count = int(
         db.query(BusinessEvent)
@@ -357,7 +358,7 @@ async def ledger_summary(db: Session = Depends(get_db), merchant_id: str = Depen
 
 
 @router.get("/ledger/events")
-async def ledger_events(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def ledger_events(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     rows = (
         db.query(BusinessEvent, Customer.display_name)
         .outerjoin(Customer, BusinessEvent.customer_id == Customer.id)
@@ -456,7 +457,7 @@ def _financing_references(readiness) -> list[dict]:
 
 
 @router.get("/intelligence")
-async def intelligence(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def intelligence(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     passport = compute_passport(db, merchant_id=merchant_id)
     readiness = evaluate_readiness(db, merchant_id=merchant_id, passport=passport)
     dash = dashboard_bundle(db, merchant_id=merchant_id)
@@ -475,6 +476,24 @@ async def intelligence(db: Session = Depends(get_db), merchant_id: str = Depends
 # ---------------------------------------------------------------------------
 # POST /actions/reminder/draft  —  voice-based reminder flow
 # ---------------------------------------------------------------------------
+
+
+def _voice_reminder_context(db: Session, command_text: str, merchant_id: str):
+    """No ORM objects/connection are carried across the provider await."""
+    try:
+        customer = _find_customer_in_text(db, command_text, merchant_id=merchant_id)
+        if customer is None:
+            return None
+        outstanding = customer_outstanding_paisa(db, customer.id)
+        oldest_unpaid = customer_oldest_unpaid(db, customer.id) if outstanding > 0 else None
+        event_count = int(db.query(BusinessEvent).filter(
+            BusinessEvent.merchant_id == merchant_id,
+            BusinessEvent.customer_id == customer.id,
+            BusinessEvent.verification_status == VerificationStatus.confirmed.value,
+        ).count() or 0) if outstanding > 0 else 0
+        return customer.display_name, outstanding, oldest_unpaid, event_count
+    finally:
+        db.close()
 
 
 @router.post("/actions/reminder/draft")
@@ -501,8 +520,8 @@ async def reminder_draft(
     command_text = transcript_result.text
 
     # Step 2: find the customer mentioned in the command
-    customer = _find_customer_in_text(db, command_text, merchant_id=merchant_id)
-    if customer is None:
+    context = await run_in_threadpool(_voice_reminder_context, db, command_text, merchant_id)
+    if context is None:
         return {
             "command_text": command_text,
             "customer_name": None,
@@ -514,13 +533,13 @@ async def reminder_draft(
         }
 
     # Step 3: check outstanding balance
-    outstanding = customer_outstanding_paisa(db, customer.id)
+    customer_name, outstanding, oldest_unpaid, event_count = context
     if outstanding <= 0:
         return {
             "command_text": command_text,
-            "customer_name": customer.display_name,
+            "customer_name": customer_name,
             "balance": {
-                "customer_name": customer.display_name,
+                "customer_name": customer_name,
                 "receivable_balance": 0,
                 "currency": "PKR",
                 "event_count": 0,
@@ -528,20 +547,19 @@ async def reminder_draft(
             "draft_message": None,
             "status": "no_balance",
             "channel": "draft_on_screen",
-            "notes": [f"{customer.display_name} has no outstanding udhaar."],
+            "notes": [f"{customer_name} has no outstanding udhaar."],
         }
 
     # Step 4: draft the reminder message via AI
-    oldest_unpaid = customer_oldest_unpaid(db, customer.id)
     try:
         result = await adapter.draft_reminder(
-            customer.display_name, outstanding, oldest_unpaid, tone="friendly"
+            customer_name, outstanding, oldest_unpaid, tone="friendly"
         )
     except ProviderError:
         # Fallback draft message if AI is unavailable
         rupees = outstanding / 100
         draft_msg = (
-            f"Assalam o Alaikum {customer.display_name} bhai, "
+            f"Assalam o Alaikum {customer_name} bhai, "
             f"aap ke zimay PKR {rupees:,.0f} baqi hain. "
             f"Barah-e-karam jab mumkin ho payment kar dein. Shukriya."
         )
@@ -550,22 +568,11 @@ async def reminder_draft(
         draft_msg = result.text
         provider_name = result.provider
 
-    event_count = int(
-        db.query(BusinessEvent)
-        .filter(
-            BusinessEvent.merchant_id == merchant_id,
-            BusinessEvent.customer_id == customer.id,
-            BusinessEvent.verification_status == VerificationStatus.confirmed.value,
-        )
-        .count()
-        or 0
-    )
-
     return {
         "command_text": command_text,
-        "customer_name": customer.display_name,
+        "customer_name": customer_name,
         "balance": {
-            "customer_name": customer.display_name,
+            "customer_name": customer_name,
             "receivable_balance": round(outstanding / 100, 2),
             "currency": "PKR",
             "event_count": event_count,
@@ -586,7 +593,7 @@ async def reminder_draft(
 
 
 @router.post("/demo/seed", dependencies=[Depends(require_local_demo)])
-async def demo_seed(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def demo_seed(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     load_seed(db, merchant_id=merchant_id)
     _combined_cache.pop(merchant_id, None)  # invalidate combined cache
     rows = (
@@ -608,7 +615,7 @@ async def demo_seed(db: Session = Depends(get_db), merchant_id: str = Depends(ge
 
 
 @router.get("/combined")
-async def combined_data(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def combined_data(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     """Return ALL data in a single request to eliminate 3x network round-trips.
 
     Results are cached for 30 seconds per merchant.  The cache is invalidated

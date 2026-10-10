@@ -13,5 +13,5 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 @router.get("", response_model=DashboardResponse)
-async def get_dashboard(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
+def get_dashboard(db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     return dashboard_bundle(db, merchant_id=merchant_id)

@@ -381,6 +381,14 @@ Production CORS probe allows the exact app origin, not an unrelated test origin;
 
 Added minimal safe fallback diagnostics after reviewing the existing Python integration: provider/capability/exception category/numeric HTTP status only, never exception text, merchant inputs or response bodies. Two regressions prove sensitive upstream/model text stays out of logs. **198 backend cases now pass**. No provider routing/model/accounting rewrite or new SDK migration was introduced during this release window.
 
+### Hosted write exposed a concurrency defect — fix prepared
+
+The agent confirmed one synthetic **PKR 500 cash sale**, `Regional QA Cash Test`, in the user's newly created test account. The screen reported Saved once. Overlapping `/api/combined` reloads then returned 500; Vercel runtime logs identify **QueuePool size 1 / overflow 0 / 12-second timeout**, not a missing record or JSON serialization error. The row and all other merchant data were preserved.
+
+**Decision:** retain the bounded pool, accounting, auth filters and response contracts. Follow FastAPI's synchronous-I/O guidance: plain `def` for DB-only routes; offload the SQL phase of async Ask/capture routes. Reminder routes snapshot scalar ledger facts and close their read transaction before awaiting AI; receipt reads release the connection before private storage download. No concurrent sharing of a Session, new framework or larger connection fan-out.
+
+**Evidence:** the new file-backed SQLite/QueuePool regression first reproduced **200/500/500/500** from four overlapping combined requests. After the fix, ten endpoint variants all return 200 and release their sole connection. Both reminder paths allow another ledger read during the mock provider wait; receipt download starts with no checked-out connection. Full isolated suite: **211 passed in 7.73 seconds** (13 new cases). This is a focused concurrency check, not a production load benchmark. Log: `tmp/regional-audit/cloud-concurrency-pytest.txt` outside Git. Hosted reloading of the original PKR 500 row after the next deployment remains the exit gate.
+
 ## Update protocol
 
 Second-run startup: frontend `127.0.0.1:3001` and backend `127.0.0.1:8001` are running for the team's live testing. The backend uses separate `tmp/regional-audit/run2-live.db` / `run2-live-uploads`, with existing configured AI providers; authentication is disabled only in this loopback test process. Original `.env` files/PostgreSQL are unchanged. Dashboard returned 200 with no browser errors and the known 63-entry seed totals. Preserve the team's new test entries; subsequent automated regression fixtures must not reset this live-test database. Next milestones: bounded Ask resolver/renderer, upload-time ownership, health/readiness trust corrections, focused end-to-end tests, then deployment/presentation gates.
