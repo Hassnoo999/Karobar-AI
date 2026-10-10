@@ -314,7 +314,7 @@ Handoff check: frontend dashboard returned HTTP 200; cheap backend health return
 | Decision | Reason and result |
 |---|---|
 | Keep Next/FastAPI and five existing Ask tools | No framework/accounting rewrite; active Services config and Python 3.12 pin now exist and pass the current official schema |
-| Fail closed on cloud development defaults | Require auth/Postgres/no auto-seed/private Blob; skip remote `create_all`; seed/reset return 403. Missing settings cannot publish a writable shared demo |
+| Fail closed on cloud development defaults | Validate at module import AND lifespan: serverless adapters may omit startup hooks. Require auth/Postgres/no auto-seed/private Blob; skip remote `create_all`; seed/reset return 403. Missing settings cannot publish a writable shared demo |
 | Request-scoped OIDC for private Blob | Published Python SDK 0.11.6 lacks Blob OIDC support. Bounded transport follows official API v12; no long-lived RW credential created; hosted protocol still unverified |
 | Server-selected immutable merchant namespace | Upload ownership survives function restarts without new DB tables. Check both confirmation paths before customer/event writes and require a confirmed attachment to read |
 | 4 MB cap on every voice/receipt path | Multipart headroom below hosted request limit; reject before paid/storage work. Larger direct uploads deferred |
@@ -332,7 +332,7 @@ Handoff check: frontend dashboard returned HTTP 200; cheap backend health return
 
 | Gate | Result | Limit |
 |---|---|---|
-| Backend suite | **195 passed**, `pip check` clean | Offline SQLite/demo/mock Blob; 30 new cloud regressions over L1's 165 |
+| Backend suite | **196 passed**, `pip check` clean | Offline SQLite/demo/mock Blob; 31 new cloud regressions over L1's 165, including import-time guard |
 | Frontend build | **Pass**, declared webpack build, 11 pages; default Turbopack also passed | Node 22.23.3/Next 16.3.8; not hosted auth proof |
 | Vercel config | Current official schema validates | Actual build/routing still pending |
 | Installed Python dependencies | **0 known vulnerabilities** after patches | Not a penetration test; check fresh cloud resolution |
@@ -355,9 +355,14 @@ Evidence outside Git: `backend-dependency-audit.json`, `backend-dependency-audit
 
 Presentation is still the earlier deck; update it/video script after a verified demo URL. Append commit/push and hosted outcomes only once observed.
 
+### GitHub release and first hosted build
+
+Release `252123017a1e24e0d3c4c6172349edb4db9524f3` committed/pushed to `Hassnoo999/Karobar-AI` main (68 changed files). Local/remote SHAs match. Current `.env` files, databases/WAL files, receipts and `.vercel` metadata remain ignored. The shared data hook's old `.ts` implementation is replaced by its `.tsx` provider; the old source remains recoverable in Git history.
+
+Git triggered Vercel deployment `2pvw7DkNkDC8U3aWSL4v5s9eyanN`. Dashboard reports **Ready**, duration 1m 34s, both services built. The landing page renders at `https://project-4ps4k.vercel.app/`, but `/api/health` and `/api/combined` returned **500** with cloud credentials still unconfigured. This is **not a usable full-stack demo** and must not be handed off for video recording yet. The import-time safeguard follow-up is committed separately; production credentials and actual API/auth/Blob verification remain the next boundary.
+
 ## Update protocol
 
 Second-run startup: frontend `127.0.0.1:3001` and backend `127.0.0.1:8001` are running for the team's live testing. The backend uses separate `tmp/regional-audit/run2-live.db` / `run2-live-uploads`, with existing configured AI providers; authentication is disabled only in this loopback test process. Original `.env` files/PostgreSQL are unchanged. Dashboard returned 200 with no browser errors and the known 63-entry seed totals. Preserve the team's new test entries; subsequent automated regression fixtures must not reset this live-test database. Next milestones: bounded Ask resolver/renderer, upload-time ownership, health/readiness trust corrections, focused end-to-end tests, then deployment/presentation gates.
 
 After each checkpoint, record date, changed files, checks actually run, actual result, remaining risk and next checkpoint. Mark complete only after its exit gate passes. Do not reuse September verification claims as current measurements.
-

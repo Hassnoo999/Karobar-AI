@@ -144,7 +144,7 @@ The repository intentionally excludes local databases, uploads, environment secr
 
 ## Current verification
 
-- 195 backend tests pass, including product-boundary, chatbot, local/cloud upload ownership, release guards and evidence-claim regressions.
+- 196 backend tests pass, including product-boundary, chatbot, local/cloud upload ownership, release guards and evidence-claim regressions.
 - The Next.js production build passes.
 - The frontend production dependency audit and installed Python dependency audit report zero known vulnerabilities after compatible patches. Eight frontend development-tool findings remain tracked. These audits are not a security guarantee.
 - 15 desktop/tablet/mobile product-route checks and a 27-check browser story pass in an isolated local demo.

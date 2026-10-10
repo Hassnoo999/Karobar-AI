@@ -21,6 +21,10 @@ from app.routers import ALL_ROUTERS
 
 logger = logging.getLogger(__name__)
 
+# Serverless adapters do not all run ASGI lifespan. Validate at import too,
+# before constructing an application that could serve unsafe default settings.
+validate_deployment(settings)
+
 
 async def _warmup_db_pool():
     """Background task: establish one warm connection in the pool at startup.

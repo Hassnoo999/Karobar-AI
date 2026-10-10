@@ -142,7 +142,7 @@ Backend/
 ## Testing
 
 ```bash
-pytest            # 195 tests; fully offline (demo provider, in-memory SQLite, mocked Blob)
+pytest            # 196 tests; fully offline (demo provider, in-memory SQLite, mocked Blob)
 python scripts/eval_extractor.py   # extraction accuracy against the live chain
 python -m scripts.check_providers  # explicit paid checks; prints no raw provider errors
 python -m scripts.release_preflight --database # read-only TLS/RLS/grants inspection
@@ -153,7 +153,7 @@ Tests pin the seed dataset's designed outcomes: total outstanding **Rs 100,000**
 top debtor **Ahmed Rs 58,500** (oldest unpaid 45 days = overdue), credit sales
 **Rs 198,000**, recovered **Rs 98,000 (~49.5%)**.
 
-The regional checkpoints add 121 regressions to the original 74: bridge validation/precision/provenance, >200-row balances, frozen-clock question guards, upload ownership, evidence claims and cloud release safeguards. The original question audit passes 26/26. These offline checks do not verify deployed authentication or real cloud storage. Gemini text and synthetic English receipt extraction were checked separately; real microphone/Urdu photo quality remains unverified. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md).
+The regional checkpoints add 122 regressions to the original 74: bridge validation/precision/provenance, >200-row balances, frozen-clock question guards, upload ownership, evidence claims and cloud release safeguards. The original question audit passes 26/26. These offline checks do not verify deployed authentication or real cloud storage. Gemini text and synthetic English receipt extraction were checked separately; real microphone/Urdu photo quality remains unverified. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md).
 
 ## Receipt ownership and existing files
 

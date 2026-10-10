@@ -1,6 +1,6 @@
 # Deploy both Karobaar apps on Vercel
 
-Checked 10 October 2026. **Project/private storage created and cloud code implemented; hosted end-to-end approval remains pending.** Chrome verifies the intended account; the connector is linked elsewhere. The user restored the paused original Supabase project; connectivity now works. No remote records/policies, original environment files or paid-plan settings were changed by this release work.
+Checked 10 October 2026. **Code pushed and both services built; hosted end-to-end approval remains pending.** First deployment reports Ready and serves the landing page at `https://project-4ps4k.vercel.app/`, but API checks return 500 while required credentials remain unconfigured. This is not a usable full-stack demo yet. Chrome verifies the intended account; the connector is linked elsewhere. The user restored the paused original Supabase project; connectivity works. No remote records/policies, original environment files or paid-plan settings were changed by this release work.
 
 ## Created and visibly verified
 

@@ -1,5 +1,9 @@
 """Release gates: fail-closed config, private OIDC receipt paths, upload caps."""
 import json
+import os
+from pathlib import Path
+import subprocess
+import sys
 
 import httpx
 import pytest
@@ -49,6 +53,17 @@ def test_vercel_flag_enforces_production_guard(monkeypatch):
     monkeypatch.setenv("VERCEL", "1")
     with pytest.raises(RuntimeError):
         validate_deployment(Settings(_env_file=None, require_auth=False, auto_seed=True))
+
+
+def test_serverless_import_cannot_skip_release_guard(tmp_path):
+    env = os.environ | {"PYTHONPATH": str(Path(__file__).resolve().parents[1]), "VERCEL": "1",
+        "ENVIRONMENT": "production", "REQUIRE_AUTH": "false", "AUTO_SEED": "true",
+        "DATABASE_URL": "sqlite:///should-not-exist.db", "RECEIPT_STORAGE": "local"}
+    result = subprocess.run([sys.executable, "-c", "import app.main"], cwd=tmp_path,
+        env=env, capture_output=True, text=True, timeout=20)
+    assert result.returncode != 0
+    assert "Unsafe deployment configuration" in result.stderr
+    assert not (tmp_path / "should-not-exist.db").exists()
 
 
 @pytest.mark.parametrize("route", ["/api/capture/transcribe", "/api/understand/voice", "/api/actions/reminder/draft",
