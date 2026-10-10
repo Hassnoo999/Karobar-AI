@@ -173,6 +173,8 @@ This local-only operation never overwrites a registered owner or changes ledger 
 
 The active repository-root `vercel.json` defines Next.js and FastAPI services under one domain; Python is pinned to 3.12. See the [Vercel deployment plan](../docs/VERCEL_DEPLOYMENT_PLAN.md) for current configuration and remaining release gates. Vercel/production startup rejects authentication-off, SQLite, auto-seeding or local-receipt settings. It never creates/seeds remote tables. The existing Supabase schema must already be provisioned.
 
+SQLAlchemy is pinned to the verified 2.0.52 release to match psycopg2. Do not casually replace this with an unbounded range: SQLAlchemy 2.1 changes the default PostgreSQL driver, and that mismatch caused a real hosted startup failure despite a successful build.
+
 Cloud Postgres verifies certificates using Supabase's public CA from Database Settings (not a credential), a bounded connection timeout, and a one-connection pool. The read-only preflight confirmed TLS, both tables' RLS, no browser-access policies, and zero visible rows for anon/authenticated roles. The current backend DB role bypasses RLS; replace it with a least-privilege role in follow-up work. No remote policies or records were changed.
 
 Cloud snapshots skip the process-local cache. API responses use `private, no-store`; AI failure responses do not echo provider internals. Voice/receipt uploads are capped at 4 MB to leave multipart headroom below Vercel's request limit. Actual hosted upload sizes and Blob OIDC/persistence still need end-to-end checks. The installed Python dependency audit is clean after PyJWT/urllib3 patches; that is not an overall security certification.

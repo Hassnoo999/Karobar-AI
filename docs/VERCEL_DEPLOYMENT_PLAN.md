@@ -1,6 +1,6 @@
 # Deploy both Karobaar apps on Vercel
 
-Checked 10 October 2026. **Code pushed and both services built; hosted end-to-end approval remains pending.** First deployment reports Ready and serves the landing page at `https://project-4ps4k.vercel.app/`, but API checks return 500 while required credentials remain unconfigured. This is not a usable full-stack demo yet. Chrome verifies the intended account; the connector is linked elsewhere. The user restored the paused original Supabase project; connectivity works. No remote records/policies, original environment files or paid-plan settings were changed by this release work.
+Checked 10 October 2026. **Code pushed, credentials provisioned, production rebuild requested; hosted end-to-end verification remains pending.** The first deployment served the landing page at `https://project-4ps4k.vercel.app/` but returned API 500 before credentials were configured. Do not yet treat it as a usable full-stack demo. Chrome verifies the intended account; the connector is linked elsewhere. The user restored the paused original Supabase project; connectivity works. No remote records/policies, original environment files or paid-plan settings were changed by this release work.
 
 ## Created and visibly verified
 
@@ -9,7 +9,11 @@ Checked 10 October 2026. **Code pushed and both services built; hosted end-to-en
 - GitHub connection: `Hassnoo999/Karobar-AI`; Vercel's Git settings show “Connected”. Release commit/push status is recorded in the implementation ledger.
 - Private receipt store: `karobar-ai-receipts`, `store_pIxxwbibXeqpr8D5`, Tokyo (`hnd1`). Creation succeeded; dashboard shows **Private**, empty storage and Hobby included quotas. No upgrade was selected. No receipt data was uploaded.
 - Store connection created `BLOB_STORE_ID` / `BLOB_WEBHOOK_PUBLIC_KEY` in the project's Production and Preview environments. The optional long-lived read/write-token checkbox was left off; prefer the SDK's rotating OIDC authentication on Vercel. “Not Protected” on the store refers to its optional firewall badge, not public blob access.
-- This is **not yet a verified public demo**. Active Services config and the private storage adapter exist; environment provisioning, actual cloud builds and end-to-end checks remain required.
+- With explicit user approval, the existing database URL, Supabase JWT secret and Groq/Gemini API keys are saved as **Production-only Secret variables**. The frontend key was checked to be public anon/publishable before saving as Production Config. No key values are included in this repository.
+- Vercel's bulk `.env` input unexpectedly reset its initial type/scope selections. The four private variables briefly saved as Config in Production and Preview; each was corrected and the saved Secret/Production list visibly verified before the credential-enabled rebuild. No Preview deployment was requested. Values were not printed or committed; this scope correction is not a credential rotation.
+- The public Supabase URLs, same-origin `/api`, auth-required/no-seed/private-storage settings and exact production CORS origin are saved. A clean Production redeploy of `daad3ac` was requested with the latest settings.
+- This is **not yet a verified public demo**. Authenticated database/capture/receipt persistence still needs real hosted proof.
+- The credential-enabled build reported Ready but runtime logs exposed a SQLAlchemy driver mismatch (`psycopg` missing). Requirements now pin the locally tested 2.0.52, which matches the installed psycopg2 driver. Rebuild and runtime checks are required; build success alone is insufficient.
 
 ## In simple words
 

@@ -50,6 +50,7 @@ npm audit --omit=dev
 - Ledger pagination and entry filters/export apply to the loaded window; a notice appears when older entries are not loaded.
 - Network errors do not automatically substitute sample figures or chatbot answers. Users can explicitly choose a clearly labeled, read-only sample preview and reconnect later.
 - When Supabase is configured, protected routes wait for the restored session and redirect unauthenticated visitors to `/signin`.
+- Signup opens the dashboard only when Supabase issues a session. If email confirmation is required, the page tells the user to check email and return to sign in; it does not pretend an unconfirmed account is signed in.
 - The frontend preserves missing fields, zero/unknown confidence, duplicate flags and provider/source labels. Invalid drafts cannot be confirmed; failed saves retain the draft.
 - Manual entry uses the same confirmation/accounting path and carries no invented AI confidence.
 - Voice and receipt uploads are capped at 4 MB. Use short recordings; larger direct uploads are not implemented in this release.

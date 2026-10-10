@@ -12,6 +12,7 @@ export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,6 +22,7 @@ export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
     if (!email || !password) { setError("Enter your email and password to continue."); return; }
     if (password.length < 6) { setError("Password must contain at least 6 characters."); return; }
     setError("");
+    setNotice("");
     setLoading(true);
 
     // --- Supabase auth (when configured) ---
@@ -33,7 +35,7 @@ export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
           });
           if (authError) { setError(authError.message); setLoading(false); return; }
         } else {
-          const { error: authError } = await supabase.auth.signUp({
+          const { data, error: authError } = await supabase.auth.signUp({
             email,
             password,
             options: {
@@ -45,8 +47,13 @@ export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
             },
           });
           if (authError) { setError(authError.message); setLoading(false); return; }
+          if (!data.session) {
+            setNotice("Check your email to confirm your account, then return here to sign in. If no email arrives, check spam or ask the team for help.");
+            setLoading(false);
+            return;
+          }
         }
-        // Session is now active; redirect to dashboard.
+        // Redirect only when Supabase issued an authenticated session.
         router.push("/dashboard");
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Authentication failed";
@@ -81,6 +88,7 @@ export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
             <label className="block text-xs font-extrabold text-[#5d7069]">Email address<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><Mail size={18} className="text-[#758781]" /><input name="email" type="email" required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="you@business.com" /></span></label>
             <label className="block text-xs font-extrabold text-[#5d7069]">Password<span className="mt-2 flex h-12 items-center gap-3 rounded-md border border-[#d3dfda] bg-white px-3 focus-within:border-[#15946e]"><LockKeyhole size={18} className="text-[#758781]" /><input name="password" type={showPassword ? "text" : "password"} required className="min-w-0 flex-1 bg-transparent text-sm outline-none" placeholder="Minimum 6 characters" /><button type="button" onClick={() => setShowPassword((value) => !value)} className="text-[#6d7e78]" aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button></span></label>
             {error ? <p className="rounded-md bg-[#fff0ed] px-3 py-2 text-xs font-bold text-[#b74739]">{error}</p> : null}
+            {notice ? <p role="status" className="rounded-md bg-[#e6f5ee] px-3 py-3 text-sm leading-6 text-[#08775b]">{notice} <Link href="/signin" className="font-extrabold underline underline-offset-4">Sign in</Link></p> : null}
             <button disabled={loading} className="flex min-h-12 w-full items-center justify-center rounded-md bg-[#073c31] text-sm font-extrabold text-white disabled:opacity-60">{loading ? "Opening your workspace..." : mode === "signin" ? "Sign in" : "Create account"}</button>
           </form>
           <p className="mt-6 text-center text-sm text-[#6d7e78]">{mode === "signin" ? "New to Karobaar?" : "Already have an account?"} <Link className="font-extrabold text-[#08775b] underline underline-offset-4" href={mode === "signin" ? "/signup" : "/signin"}>{mode === "signin" ? "Create account" : "Sign in"}</Link></p>

@@ -347,8 +347,8 @@ Evidence outside Git: `backend-dependency-audit.json`, `backend-dependency-audit
 
 ### Remaining release gates
 
-- Approval to copy existing DB/JWT/Groq/Gemini keys into this Vercel project's **Production-only Secret variables** is pending. No existing private key copied through the browser.
-- Eight non-secret Production Config settings saved and visibly verified in Vercel (auth required, seed off, Blob mode, AI auto, `/api` and original Supabase URLs). Frontend public anon key/server secrets and actual hosted build/sign-in/routing remain pending.
+- The user explicitly approved transferring the existing DB/JWT/Groq/Gemini values to this project. All four are now visibly verified as **Production-only Secret variables**. No private values printed, committed or added to `NEXT_PUBLIC_`.
+- Eight non-secret Production settings, the validated public anon/publishable key and exact production CORS origin are saved. Actual hosted sign-in/database/receipt verification remains pending.
 - Verify deployed unauthenticated rejection, two-account API isolation, private upload/confirm/read, fresh balances and persistence after cold start/redeployment. A frontend-only URL is not a working full-stack demo.
 - Real microphone/Urdu photo quality and Groq quota remain open. Verified local servers/manual entry remain the booth fallback.
 - Post-regional: least-privilege DB role, API/provider quotas/rate limits, magic-byte validation/orphan cleanup, migrations/backups/observability, expanded auth/accessibility/dialect checks, eight frontend dev-tool advisories. No inventory/profit/banking/automatic-message scope expansion.
@@ -360,6 +360,16 @@ Presentation is still the earlier deck; update it/video script after a verified 
 Release `252123017a1e24e0d3c4c6172349edb4db9524f3` committed/pushed to `Hassnoo999/Karobar-AI` main (68 changed files). Local/remote SHAs match. Current `.env` files, databases/WAL files, receipts and `.vercel` metadata remain ignored. The shared data hook's old `.ts` implementation is replaced by its `.tsx` provider; the old source remains recoverable in Git history.
 
 Git triggered Vercel deployment `2pvw7DkNkDC8U3aWSL4v5s9eyanN`. Dashboard reports **Ready**, duration 1m 34s, both services built. The landing page renders at `https://project-4ps4k.vercel.app/`, but `/api/health` and `/api/combined` returned **500** with cloud credentials still unconfigured. This is **not a usable full-stack demo** and must not be handed off for video recording yet. The import-time safeguard follow-up is committed separately; production credentials and actual API/auth/Blob verification remain the next boundary.
+
+### Approved configuration and rebuild
+
+Follow-up `daad3acea8454cd395d5f7be6c30c61066dfb8db` is pushed to main; its Git-triggered build also reported Ready. With the user's explicit approval, existing private credentials were transferred to the intended Vercel project. Bulk `.env` entry unexpectedly reset type/scope and initially saved four values as Config in Production/Preview. Each was corrected to Secret/Production, with visible saved-list verification **before** requesting the credential-enabled rebuild. No Preview deployment was requested. Original source keys were not rotated or changed; no values entered logs, screenshots or Git.
+
+Frontend public key was validated as anon/publishable, then saved individually as Production Config. Exact `https://project-4ps4k.vercel.app` CORS origin is saved. Requested a clean Production redeploy of `daad3ac` with current settings, without reused build cache. Screenshot proof of the final four Secret/Production entries is outside Git at `tmp/regional-audit/vercel-production-secrets.jpg`. Hosted outcomes are appended only after observation.
+
+Credential-enabled deployment `FTGSMEqAVb9YTh4tfnTNeSqNqKSV` built Ready, but both API probes still returned 500. Runtime logs identify `ModuleNotFoundError: psycopg`: the unbounded SQLAlchemy dependency resolved to a newer default PostgreSQL driver, whereas this app installs psycopg2. Pin SQLAlchemy to the locally tested **2.0.52**; do not change DB credentials or install a second driver solely to mask this mismatch. The signup screen also now checks for an issued session and shows an accessible email-confirmation notice instead of incorrectly redirecting an unconfirmed account. Retest/build and Git-triggered deployment follow.
+
+After the driver pin/signup fix: all 196 backend cases passed again, `pip check` is clean, and the frontend production/TypeScript build passed (11 pages) with Node 22 selected for child processes. Known-secret scan found no matches in 150 candidate paths; whitespace checks pass. Supabase Site URL is still localhost with no redirect allowlist; requested approval for the exact production URLs and asked the user to sign in to the live app for the authenticated gate. These are not yet verified hosted sessions or confirmation-email delivery.
 
 ## Update protocol
 
