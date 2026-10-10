@@ -1,6 +1,6 @@
 # Latest changes — plain-language release notes
 
-Updated: 11 October 2026. The team reviewed the receipt/visual refinements below and approved committing, pushing and updating production. Release verification is recorded in the implementation ledger; approval alone is not proof of deployment. The later sections describe the previous 10 October hosted release. Code checks, real API checks and hosted checks are recorded separately; a passing test is not a promise of perfect AI accuracy.
+Updated: 11 October 2026. The reviewed receipt/visual refinements are published in application commit `64f8c89`, and Vercel Production is verified Ready at `https://project-4ps4k.vercel.app/`. Both Next.js and FastAPI are deployed; the new auth visuals and signed-in receipt drop zone were checked on that stable URL. Release evidence is recorded in the implementation ledger. The later sections describe the previous 10 October hosted release; code checks, real API checks and hosted checks remain separate, and a passing test is not a promise of perfect AI accuracy.
 
 ## Receipt names no longer disappear when purpose is unclear — local review
 
@@ -20,7 +20,11 @@ The desktop homepage now has mint/coral glass-style cards for voice capture, rec
 
 ## Checks and local testing boundary — 11 October
 
-The backend suite passes **272 tests**; five frontend receipt helper tests and TypeScript pass, and the Node 22 production build generates all 11 pages. Synthetic API checks retained transfer parties and correctly recognized explicit repayment/udhaar, without confirming any entries. The user later confirmed successful review/save with two receipt screenshots: parties are visible and received/sent selection fills the editable other person's name. Earlier failures included both Groq keys returning 429 before Gemini succeeded; fallback reduces disruption but cannot guarantee capacity or perfect spelling. No commit, push, production write or cloud deployment has been performed for this pass.
+The backend suite passes **272 tests**; five frontend receipt helper tests and TypeScript pass, and the Node 22 production build generates all 11 pages. Synthetic API checks retained transfer parties and correctly recognized explicit repayment/udhaar, without confirming any entries. The user later confirmed successful local review/save with two receipt screenshots: parties are visible and received/sent selection fills the editable other person's name. Earlier failures included both Groq keys returning 429 before Gemini succeeded; fallback reduces disruption but cannot guarantee capacity or perfect spelling. Publication followed explicit approval; the hosted receipt workspace shows the new drop zone and API connected, and no production transaction was created or deleted during release verification.
+
+## Approved release is live — 11 October
+
+The reviewed source was committed and pushed to GitHub main as `64f8c89`. Because a new automatic build was not visible after the push, the signed-in Vercel dashboard was used to deploy that exact commit to Production; it reached Ready in 59 seconds. The services graph confirms both frontend and backend, the new sign-in/create-account flow renders, and the signed-in receipt page shows drag-and-drop with no browser errors. Backend health returns 200 with private/no-store caching, and anonymous ledger access returns 401. Secrets, accounts, stored evidence and existing records were not changed; the documentation-only follow-up records these observed results.
 
 ## One logo and a smoother route into your account — local review
 

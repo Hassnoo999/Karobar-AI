@@ -479,6 +479,8 @@ Hosted evidence dashboard still uses the two preserved account rows (one voice, 
 
 ## Local receipt and visual refinement — 11 October 2026
 
+This section records the pre-release local checkpoint; the approved publication and hosted evidence below supersede its original no-push boundary.
+
 User boundary: local changes only; no commit, push, cloud environment change or deployment until approval. Baseline `f54f1db`; existing loopback frontend/backend are available on ports 3001/8001. Preserve the existing local test ledger and production records.
 
 Plan and decisions:
@@ -510,6 +512,15 @@ Handoff: frontend `http://127.0.0.1:3001/record`, homepage `/`, sign-in visual `
 The user reviewed the local receipt and visual refinements and explicitly approved committing to GitHub and updating deployment. The previous local-only boundary is now superseded for this reviewed pass. Target: `Hassnoo999/Karobar-AI`, `main`, Vercel `karobar-ai` in `hassanbinsaqib01-5133s-projects`, stable URL `https://project-4ps4k.vercel.app/`.
 
 Release gates: inspect the diff and ignore rules, preserve test/merchant data, publish the reviewed source, match the Vercel production commit, then verify live artwork/account links and the backend health/auth boundary. Existing passing 272-test backend suite, five receipt helper cases, TypeScript/build and user receipt screenshots form the pre-release evidence. No new credentials, account deletion, database migration or provider-capacity guarantee is part of this publication. Hosted results are appended only after observation.
+
+Verified release results:
+
+- Application commit **`64f8c89d57292620c5949dfb224c109274fa15c1`**: 23 reviewed files, pushed to GitHub main; remote SHA matched and the working tree was clean. Staged-file scan found no matching live AI keys or credential-bearing database URLs. Existing `.gitignore` already excludes real env files, local databases, uploaded receipts and build/runtime files; no unnecessary ignore edit was made.
+- Vercel connector inspection was denied for the team scope and no local Vercel CLI was available. The already signed-in Chrome project dashboard verified the correct repository/team. No new automatic build was visible after the push, so Create Deployment selected the exact SHA, confirmed main/Production, and deployed it. No settings, tokens, protection or paid plan were changed.
+- Production **`Fbvop9FQdwHaEQDshvfwWaGkhbLd`** visibly **Ready**, duration **59 seconds**, assigned to `https://project-4ps4k.vercel.app/`. Services graph shows backend **FastAPI** `/api/(.*)` and frontend **Next.js** `/(.*)`.
+- Stable-domain Chrome navigation verifies landing→signin→signup, shared artwork/form animation, no redundant large K and no horizontal auth overflow. Production auth is configured (Supabase security caption), unlike the isolated local visual workspace. A fresh signed-in `/record` shows the new receipt drop zone and **API connected**, with no browser errors.
+- Hosted `/api/health`: **200**, `Cache-Control: no-store, private`; anonymous `/api/combined`: **401 Missing authentication token**. Backend regression suite rerun: **272 passed in 11.53s**. No private receipt was reuploaded, no recognition quota was consumed and no production transaction/account/evidence object was mutated during these deployment checks. Full hosted receipt extraction was not repeated in this publication; local real API/user review evidence remains the extraction gate.
+- A documentation-only follow-up records the observed release; it changes no application logic. The final GitHub/deployment-head match is reported in the handoff, avoiding self-referential commit hashes in this ledger. Provider capacity/AI spelling, real booth microphone rehearsal and broader two-account security checks remain separate, not a claim of 100% accuracy or uptime.
 
 ## Update protocol
 
