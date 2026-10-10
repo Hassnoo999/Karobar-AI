@@ -27,12 +27,17 @@ Ledger arithmetic is deterministic; AI proposes drafts, and financial answers us
 | DB | SQLAlchemy 2.0 ORM + SQLite (Postgres-ready via `DATABASE_URL`) |
 | AI — first priority | **Groq** — configured text/JSON and Whisper audio; receipt calls intentionally fall through |
 | AI — fallback | **Google Gemini** — configured text, vision and audio; current live receipt path |
-| AI — floor | **Demo provider** — deterministic parser, canned audio transcript and incomplete receipt draft |
+| AI — offline fixture only | **Demo provider** — explicit local test mode; never an automatic fallback or deployed capture provider |
 
-Per-call fallback chain: `Groq -> Gemini -> Demo`. A rate-limited Groq call silently
-routes to Gemini for that one request; malformed model JSON gets one repair retry on
-the same provider before moving down the chain. With no API keys at all, the whole
-product can be explored in demo mode. That does not prove live recognition works. The UI distinguishes Demo AI capture from rule-based ledger answers. Capture still needs merchant review; chatbot grammar is intentionally bounded.
+Real-provider chain: `Groq -> Gemini`, with Gemini handling receipt vision directly.
+Malformed structured output gets one repair retry; exhausted or unconfigured APIs
+return a clear 503 and manual-entry guidance, never a fake capture. Whisper detects
+the spoken language instead of forcing Urdu. Gemini capture uses nullable structured
+fields, corrected image orientation and higher-resolution receipt preparation.
+Unknown receipt dates and transfer purposes remain missing for merchant review.
+Digital silent WAVs are rejected before paid calls; the browser checks decoded
+recordings for empty sound where supported. No automated check proves noisy-room or
+dialect accuracy. Capture still needs merchant review; chatbot grammar is bounded.
 
 ## Quickstart
 
@@ -42,7 +47,7 @@ python -m venv .venv
 .venv\Scripts\activate          # Windows
 pip install -r requirements.txt
 
-# Optional: put real keys in .env (see .env.example). Without keys -> demo mode.
+# Put real keys in .env (see .env.example). Without keys, AI capture is unavailable.
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -142,7 +147,7 @@ Backend/
 ## Testing
 
 ```bash
-pytest            # 211 tests; offline (demo/mock providers, isolated SQLite, mocked Blob)
+pytest            # 237 tests; offline (explicit fixtures, isolated SQLite, mocked Blob)
 python scripts/eval_extractor.py   # extraction accuracy against the live chain
 python -m scripts.check_providers  # explicit paid checks; prints no raw provider errors
 python -m scripts.release_preflight --database # read-only TLS/RLS/grants inspection

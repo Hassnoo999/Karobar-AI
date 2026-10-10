@@ -1,14 +1,14 @@
-"""Fallback chain: Groq -> Gemini -> Demo, with one JSON-repair retry per provider.
+"""Real-provider fallback, with one repair retry for structured output.
 
-Per-call semantics: a single Groq failure (rate limit, timeout) mid-demo
-transparently routes that one request to Gemini; malformed model JSON gets one
-repair retry on the same provider before moving down the chain. The Demo
-provider never fails, so the product always responds.
+Unavailable APIs fail clearly; they never manufacture a Demo response.
+Explicit local demo mode remains available for isolated offline tests only.
 """
 from __future__ import annotations
 
 from datetime import date
+import io
 import logging
+import wave
 from typing import Any
 
 from app.ai.base import ProviderError
@@ -37,7 +37,7 @@ REPAIR_HINT = (
 
 class FallbackAdapter:
     def __init__(self, providers: list[Any]) -> None:
-        self.providers = providers or [DemoProvider()]
+        self.providers = providers
 
     def chain_names(self) -> list[str]:
         return [p.name for p in self.providers]
@@ -45,13 +45,19 @@ class FallbackAdapter:
     async def _call(self, method_name: str, /, *args: Any, **kwargs: Any) -> Any:
         last_error: Exception = ProviderError("no provider configured")
         for provider in self.providers:
+            if method_name in getattr(provider, "unsupported_capabilities", ()):
+                continue
             method = getattr(provider, method_name)
-            for attempt in (1, 2):
+            for attempt in ((1,) if method_name == "transcribe_audio" else (1, 2)):
                 call_kwargs = dict(kwargs)
                 if attempt == 2:
                     call_kwargs["repair_hint"] = REPAIR_HINT
                 try:
                     result = await method(*args, **call_kwargs)
+                    if method_name == "transcribe_audio" and (
+                        not result.text.strip() or result.text.strip().upper() == "[NO_SPEECH]"
+                    ):
+                        raise ValueError("no intelligible speech")
                 except ValueError as exc:
                     # malformed model output -> retry same provider once with repair hint
                     last_error = exc
@@ -67,11 +73,25 @@ class FallbackAdapter:
                     break
                 result.provider = provider.name
                 return result
-        raise ProviderError(f"all providers failed for '{method_name}': {last_error}")
+        raise ProviderError(
+            "No real AI provider could complete this capture. Please try again or enter the transaction manually."
+        ) from last_error
 
     # --- capability facade ---------------------------------------------------
 
     async def transcribe_audio(self, audio: bytes, mime: str):
+        # Whisper can hallucinate speech even for an all-zero WAV. Reject
+        # unambiguous digital silence before any paid provider request.
+        if (mime or "").split(";")[0] in {"audio/wav", "audio/x-wav"}:
+            try:
+                with wave.open(io.BytesIO(audio), "rb") as recording:
+                    samples = recording.readframes(recording.getnframes())
+                    silent_value = 128 if recording.getsampwidth() == 1 else 0
+                    if not samples or all(sample == silent_value for sample in samples):
+                        raise ProviderError("No speech was recorded. Please record a clear transaction or enter it manually.")
+            except (wave.Error, EOFError):
+                # Other supported encodings still go through the real provider.
+                pass
         return await self._call("transcribe_audio", audio, mime)
 
     async def extract_event_from_text(self, text: str, today: date):
@@ -94,7 +114,7 @@ _ADAPTER: FallbackAdapter | None = None
 
 
 def get_adapter() -> FallbackAdapter:
-    """Build (once) the provider chain from settings. Demo is always the floor."""
+    """Build the explicitly configured chain; no implicit Demo fallback."""
     global _ADAPTER
     if _ADAPTER is None:
         providers: list[Any] = []

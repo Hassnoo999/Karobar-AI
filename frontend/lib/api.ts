@@ -5,11 +5,12 @@ export type HealthResponse = {
 };
 
 export type ProviderResponse = {
-  selected_provider: "alibaba" | "groq" | "demo";
+  selected_provider: "alibaba" | "groq" | "gemini" | "demo" | "unavailable";
   mode: string;
   configured: {
     alibaba: boolean;
     groq: boolean;
+    gemini?: boolean;
   };
   models: {
     alibaba: string | null;
@@ -47,6 +48,7 @@ export type LedgerEvent = {
   validation_notes: string[];
   evidence_filename?: string | null;
   ai_provider?: string | null;
+  transcript_provider?: string | null;
   possible_duplicate?: boolean;
   duplicate_of?: number | null;
   notes?: string | null;

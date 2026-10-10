@@ -86,7 +86,7 @@ def _event_to_fe(event: BusinessEvent, customer_name: str | None) -> dict:
     return {
         "id": event.id,
         "event_type": et,
-        "payment_type": "credit" if et in ("credit_given", "credit_received") else "cash",
+        "payment_type": ("credit" if et in ("credit_given", "credit_received") else "cash") if et else None,
         "customer_name": name or ("Business expense" if et == "expense" else "Walk-in"),
         "amount": round(event.amount_paisa / 100, 2),
         "currency": "PKR",
@@ -113,7 +113,7 @@ def _draft_to_fe_event(draft, raw_text: str | None = None) -> dict:
     status = "validated" if not missing else "pending_validation"
     return {
         "event_type": et,
-        "payment_type": "credit" if et in ("credit_given", "credit_received") else "cash",
+        "payment_type": ("credit" if et in ("credit_given", "credit_received") else "cash") if et else None,
         "customer_name": draft.customer_name or draft.counterparty or None,
         "amount": amount,
         "currency": "PKR",
@@ -174,27 +174,29 @@ def _find_customer_in_text(db: Session, text: str, merchant_id: str = "demo") ->
 @router.get("/config/ai-provider")
 async def get_config():
     chain = settings.provider_chain()
-    selected = chain[0] if chain else "demo"
-
-    # The frontend references "alibaba" as a legacy provider name;
-    # we map our actual providers to the shape it expects.
-    fe_selected = "groq" if selected == "groq" else ("demo" if selected == "demo" else "groq")
+    selected = chain[0] if chain else "unavailable"
 
     return {
-        "selected_provider": fe_selected,
+        "selected_provider": selected,
         "mode": settings.ai_provider,
         "configured": {
             "alibaba": False,
             "groq": bool(settings.groq_api_key),
+            "gemini": bool(settings.gemini_api_key),
         },
         "models": {
             "alibaba": None,
             "groq_text": settings.groq_text_model,
-            "groq_vision": settings.groq_vision_model,
+            "groq_vision": None,
             "groq_transcribe": settings.groq_audio_model,
+            "gemini": settings.gemini_model,
         },
-        "missing_required_env": [] if settings.groq_api_key else ["GROQ_API_KEY"],
-        "message": f"Active chain: {' → '.join(chain)}",
+        "missing_required_env": [] if chain else ["GROQ_API_KEY or GEMINI_API_KEY"],
+        "capabilities": {
+            "voice": [name for name in chain],
+            "receipt": [name for name in chain if name != "groq"],
+        },
+        "message": f"Active chain: {' → '.join(chain)}" if chain else "Real AI is not configured. Manual entry remains available.",
     }
 
 
@@ -257,7 +259,7 @@ async def understand_voice(
             "next_step": "Review the extracted event and confirm.",
         },
         "provider": draft.provider,
-        "event": _draft_to_fe_event(draft, transcript_result.text),
+        "event": {**_draft_to_fe_event(draft, transcript_result.text), "transcript_provider": transcript_result.provider},
     }
 
 

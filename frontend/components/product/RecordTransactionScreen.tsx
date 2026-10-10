@@ -12,6 +12,25 @@ type Status = "idle" | "preparing" | "recording" | "extracting" | "review" | "sa
 type Mode = "voice" | "receipt" | "manual";
 function pktDate() { return new Intl.DateTimeFormat("en-CA", {timeZone: "Asia/Karachi", year: "numeric", month: "2-digit", day: "2-digit"}).format(new Date()); }
 
+async function checkRecordedAudio(file: File) {
+  if (typeof window.AudioContext === "undefined") return;
+  const context = new AudioContext();
+  try {
+    let audio: AudioBuffer;
+    try { audio = await context.decodeAudioData(await file.arrayBuffer()); }
+    catch { return; } // Some browsers record containers their decoder cannot read.
+    if (audio.duration < .8) throw new Error("That recording was too short. Speak one complete transaction and try again.");
+    let hasSignal = false;
+    for (let channel = 0; channel < audio.numberOfChannels && !hasSignal; channel++) {
+      const samples = audio.getChannelData(channel);
+      for (let index = 0; index < samples.length; index++) {
+        if (Math.abs(samples[index]) > .00001) {hasSignal = true; break;}
+      }
+    }
+    if (!hasSignal) throw new Error("No sound was recorded. Check your microphone and record again, or use manual entry.");
+  } finally { await context.close().catch(() => {}); }
+}
+
 export function RecordTransactionScreen() {
   const {connection, dashboard, refresh} = useProductData();
   const [mode, setMode] = useState<Mode>("voice");
@@ -45,7 +64,7 @@ export function RecordTransactionScreen() {
 
   useEffect(() => () => {
     generation.current += 1;
-    if (recorder.current) recorder.current.onstop = null;
+    if (recorder.current) {recorder.current.onstop = null; recorder.current.onerror = null;}
     stream.current?.getTracks().forEach(track => track.stop());
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
   }, []);
@@ -66,6 +85,7 @@ export function RecordTransactionScreen() {
     setSourceName("Manual entry"); setStatus("review");
   }
   async function processFile(kind: "voice" | "receipt", file: File) {
+    if (!file.size) {setError("This capture is empty. Please record again or choose another photo."); setStatus("error"); return;}
     if (file.size > 4 * 1024 * 1024) {setError(kind === "receipt" ? "Choose a receipt smaller than 4 MB." : "Keep voice notes under 4 MB. Try a shorter recording."); setStatus("error"); return;}
     const request = ++generation.current;
     setStatus("extracting"); setError(""); setDraft(null); setSourceName(file.name); setDuplicateReviewed(false);
@@ -74,8 +94,11 @@ export function RecordTransactionScreen() {
       previewUrl.current = URL.createObjectURL(file); setPreview(previewUrl.current);
     }
     try {
+      if (kind === "voice") await checkRecordedAudio(file);
+      if (request !== generation.current) return;
       const result = await understandCapture(kind, file);
       if (request !== generation.current) return;
+      if (result.provider === "demo" || result.event.ai_provider === "demo") throw new Error("Real AI is not configured on this server. No placeholder draft was used. Please retry or enter the transaction manually.");
       setDraft({...result.event, ai_provider: result.event.ai_provider ?? result.provider}); setStatus("review");
     } catch (err) {
       if (request !== generation.current) return;
@@ -92,15 +115,30 @@ export function RecordTransactionScreen() {
       const audio = await navigator.mediaDevices.getUserMedia({audio: true});
       if (request !== generation.current) {audio.getTracks().forEach(track => track.stop()); return;}
       stream.current = audio;
-      const media = new MediaRecorder(audio);
+      const preferredMime = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find(type => MediaRecorder.isTypeSupported(type));
+      const media = new MediaRecorder(audio, preferredMime ? {mimeType: preferredMime} : undefined);
+      const startedAt = Date.now();
       const chunks: BlobPart[] = [];
       recorder.current = media;
       media.ondataavailable = event => {if (event.data.size) chunks.push(event.data);};
       media.onstop = () => {
         audio.getTracks().forEach(track => track.stop());
+        stream.current = null;
+        recorder.current = null;
         if (request !== generation.current) return;
+        if (Date.now() - startedAt < 1000) {setError("That recording was too short. Speak one complete transaction, then tap stop."); setStatus("error"); return;}
         const mime = media.mimeType || "audio/webm";
-        void processFile("voice", new File(chunks, "voice-note.webm", {type: mime}));
+        const extension = mime.includes("mp4") ? "m4a" : mime.includes("ogg") ? "ogg" : "webm";
+        void processFile("voice", new File(chunks, `voice-note.${extension}`, {type: mime}));
+      };
+      media.onerror = () => {
+        media.onstop = null;
+        audio.getTracks().forEach(track => track.stop());
+        if (media.state !== "inactive") media.stop();
+        stream.current = null;
+        recorder.current = null;
+        if (request !== generation.current) return;
+        setError("Your browser could not record the audio. Please retry or use manual entry."); setStatus("error");
       };
       media.start(); setStatus("recording");
     } catch (err) {
@@ -130,7 +168,7 @@ export function RecordTransactionScreen() {
         <div className="grid grid-cols-3 gap-1 border-b border-[#e7ede4] p-2" aria-label="Capture method">{(["voice", "receipt", "manual"] as Mode[]).map(item => <button key={item} onClick={() => item === "manual" ? manual() : reset(item)} disabled={busy || status === "review" || connection !== "live"} aria-pressed={mode === item} className={"flex min-h-11 items-center justify-center gap-2 rounded-lg text-xs font-medium " + (mode === item ? "bg-[#e8f2e5] text-[#326c44]" : "text-[#627258]")}>{item === "voice" ? <Mic2 size={16} /> : item === "receipt" ? <Camera size={16} /> : <PenLine size={16} />}{item === "voice" ? "Voice" : item === "receipt" ? "Receipt" : "Manual"}</button>)}</div>
         <div className="px-6 py-7 text-center">
           <h2 className="!text-lg">{mode === "voice" ? "Say it the way you would." : mode === "receipt" ? "Keep the receipt. Capture the details." : "A simple, honest fallback."}</h2>
-          <p className="mx-auto mt-2 max-w-xs text-xs leading-6 text-[#627258]">{mode === "voice" ? 'Try: “Naveed ne 5,000 rupay ka saman udhaar liya.” · Short notes, up to 4 MB.' : mode === "receipt" ? "JPEG, PNG, WebP or HEIC · up to 4 MB" : "Enter the facts yourself. No AI confidence is assigned to a manual entry."}</p>
+          <p className="mx-auto mt-2 max-w-xs text-xs leading-6 text-[#627258]">{mode === "voice" ? 'Urdu, English or mixed speech. Try: “Naveed ne 5,000 rupay ka saman udhaar liya.” · One transaction, up to 4 MB.' : mode === "receipt" ? "JPEG, PNG, WebP or HEIC · up to 4 MB. Keep the total and date clearly visible." : "Enter the facts yourself. No AI confidence is assigned to a manual entry."}</p>
           {mode === "voice" ? <div className="py-8"><button onClick={() => status === "recording" ? recorder.current?.stop() : void startRecording()} disabled={status !== "recording" && !canCapture} className={"mx-auto grid h-28 w-28 place-items-center rounded-full border-8 border-[#edf4e8] text-white shadow-[0_8px_32px_rgba(41,91,58,.1)] " + (status === "recording" ? "record-pulse bg-[#b56049]" : "bg-[#336d48]")} aria-label={status === "recording" ? "Stop recording" : "Start voice recording"}>{status === "recording" ? <Square size={28} fill="currentColor" /> : <Mic2 size={34} strokeWidth={1.5} />}</button><p aria-live="polite" className="mt-4 text-xs font-medium text-[#496b50]">{status === "recording" ? "Listening… tap to stop" : status === "extracting" ? "Reading your capture…" : "Tap to speak · Urdu or Roman Urdu"}</p></div> : mode === "receipt" ? <button onClick={() => input.current?.click()} disabled={!canCapture} className="my-6 flex min-h-[168px] w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#c6dbc4] bg-[#f7faf3] text-sm text-[#527552]"><Upload size={25} strokeWidth={1.4} /><span>Choose a receipt photo</span><span className="text-xs text-[#627258]">Your original is retained as evidence</span></button> : <div className="my-8 flex justify-center"><PenLine size={35} className="text-[#627258]" strokeWidth={1.3} /></div>}
           <input ref={input} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" className="hidden" aria-label="Receipt photo" onChange={event => {const file = event.target.files?.[0]; if (file) void processFile("receipt", file);}} />
           {mode === "voice" ? <button onClick={() => {reset("receipt"); input.current?.click();}} disabled={!canCapture} className="ui-button-secondary w-full"><FileImage size={16} /> Use a receipt instead</button> : null}
@@ -150,7 +188,8 @@ export function RecordTransactionScreen() {
             <div className="min-w-0 flex-1"><p className="truncate text-xs font-medium">{sourceName}</p><div className="mt-1 flex flex-wrap items-center gap-2"><SourceBadge source={draft.source} provider={draft.ai_provider} />{draft.ai_provider && draft.ai_provider !== "demo" ? <span className="text-[11px] capitalize text-[#627258]">{draft.ai_provider}</span> : null}</div></div>
           </div>
           {draft.raw_input && draft.source !== "manual" ? <blockquote className="mb-5 border-l-2 border-[#acc9a0] pl-3 text-xs leading-6 text-[#708064]">{draft.raw_input}</blockquote> : null}
-          {draft.ai_provider === "demo" ? <div role="status" className="mb-5 rounded-xl bg-[#fff6df] p-3 text-xs leading-5 text-[#917037]">Demo AI response, not verified recognition. Check every field yourself before using this entry.</div> : null}
+          {draft.transcript_provider ? <p className="mb-3 text-xs capitalize text-[#627258]">Speech recognition: {draft.transcript_provider} · Transaction extraction: {draft.ai_provider}</p> : null}
+          {draft.notes ? <div role="status" className="mb-5 rounded-xl border border-[#e5d3ae] bg-[#fff6df] p-3 text-xs leading-5 text-[#917037]"><strong>AI review note:</strong> {draft.notes}</div> : null}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="ui-field">Transaction type<select className="ui-input" value={draft.event_type ?? ""} disabled={status !== "review"} onChange={event => setDraft({...draft, event_type: event.target.value as LedgerEvent["event_type"]})}><option value="" disabled>Choose a type</option><option value="sale">Cash sale</option><option value="credit_given">Credit sale / udhaar</option><option value="credit_received">Customer repayment</option><option value="expense">Business expense</option></select></label>
             <label className="ui-field">{draft.event_type === "expense" ? "Supplier / description (optional)" : "Customer"}<input className="ui-input" maxLength={120} value={draft.customer_name ?? ""} disabled={status !== "review"} placeholder={draft.event_type === "sale" ? "Walk-in (optional)" : "Customer name"} onChange={event => setDraft({...draft, customer_name: event.target.value})} /></label>

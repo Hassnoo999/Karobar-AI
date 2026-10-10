@@ -22,7 +22,7 @@ Built for the Alibaba Cloud AI Hackathon Pakistan 2026, Financial Inclusion trac
 | Financing references | Five official reference links and manual next steps; no invented sales/history/receipt qualification thresholds |
 | Reminder action | An editable, ready-to-copy udhaar reminder using the real customer balance |
 
-The application can be explored in deterministic demo mode without external AI credentials. Demo audio transcription is canned and demo receipt extraction requires manual completion—it is not live recognition. Groq handles live text/audio, with Gemini providing the receipt path when configured. Sample data and Demo AI responses are visibly labeled.
+Live capture uses real APIs only: Groq for multilingual speech/text, with Gemini for receipt vision and fallback speech/text. Missing keys, quota limits or outages produce an honest error—not a canned Demo draft. The review shows the actual provider, voice transcript and AI uncertainty notes. A generic bank transfer is not automatically classified as an udhaar repayment; unclear details require merchant review. Explicit offline Demo AI remains a local test fixture only and is disabled for deployed capture.
 
 ## Product preview
 
@@ -68,7 +68,7 @@ Next.js web app
       v
 FastAPI API + verified Supabase identity
       |
-      +--> AI adapter (Groq -> Gemini -> deterministic demo fallback)
+      +--> Real AI adapter (Groq -> Gemini; no Demo fallback)
       |
       +--> SQLAlchemy ledger (SQLite locally, Supabase PostgreSQL in cloud)
       +--> Private receipts (local owner registry / merchant-scoped Vercel Blob)
@@ -91,7 +91,7 @@ Copy-Item .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-With no AI keys, the deterministic demo provider keeps the full flow runnable. API docs are at `http://localhost:8000/docs`.
+Configure the existing Groq and Gemini API keys in the backend's private `.env` for real capture. Without keys, manual entry remains available but AI capture reports unavailable. API docs are at `http://localhost:8000/docs`.
 
 ### 2. Frontend
 

@@ -1,4 +1,4 @@
-"""Groq provider (first priority): Qwen for text/JSON, Whisper for audio, Compound for receipt vision."""
+"""Groq: configured text model and multilingual Whisper; Gemini handles receipts."""
 from __future__ import annotations
 
 import asyncio
@@ -42,6 +42,7 @@ def _mime_to_ext(mime: str) -> str:
 
 class GroqProvider:
     name = "groq"
+    unsupported_capabilities = {"extract_event_from_image"}
 
     def __init__(self) -> None:
         self.client = AsyncGroq(api_key=settings.groq_api_key)
@@ -112,8 +113,9 @@ class GroqProvider:
                     model=settings.groq_audio_model,
                     file=(f"audio.{_mime_to_ext(mime)}", audio, mime or "audio/webm"),
                     response_format="json",
-                    language="ur",
-                    prompt="Urdu Roman Urdu Pakistani shopkeeper voice note about business transactions udhaar paisay rupay",
+                    # Auto-detect rather than force English/mixed speech into Urdu.
+                    temperature=0,
+                    prompt="Business vocabulary: Karobaar, udhaar, rupay, rupees, PKR. Preserve spoken names and amounts.",
                 ),
                 timeout=settings.ai_timeout_seconds,
             )
@@ -126,8 +128,7 @@ class GroqProvider:
         return normalize_extraction(parse_json_object(raw))
 
     async def extract_event_from_image(self, image: bytes, mime: str, today: date, *, repair_hint: str = "") -> ExtractionResult:
-        # Groq has no vision-capable model — skip directly to next provider (Gemini)
-        raise ProviderError("groq has no vision model; deferring to fallback")
+        raise ProviderError("Receipt vision is not implemented by this Groq integration; configure Gemini.")
 
     async def interpret_question(self, question: str, today: date, *, repair_hint: str = "") -> ToolCall:
         raw = await self._chat_text(prompts.question_system(today), question, repair_hint=repair_hint)

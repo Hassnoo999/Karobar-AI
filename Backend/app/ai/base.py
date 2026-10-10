@@ -1,11 +1,12 @@
 """Provider-agnostic AI layer: shared result models, JSON parsing, and the provider protocol.
 
 Business logic never imports a concrete provider; it talks to the FallbackAdapter,
-which owns the Groq -> Gemini -> Demo chain.
+which owns the real-provider fallback chain.
 """
 from __future__ import annotations
 
 import json
+import math
 import re
 from datetime import date, datetime
 from typing import Any, Protocol, runtime_checkable
@@ -145,7 +146,7 @@ def _coerce_amount(value: Any) -> float | None:
             return None
     else:
         return None
-    return amount if amount >= 0 else None
+    return amount if math.isfinite(amount) and amount >= 0 else None
 
 
 _DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%d.%m.%Y")
@@ -178,6 +179,8 @@ def _coerce_confidence(value: Any) -> float | None:
         except ValueError:
             return None
     else:
+        return None
+    if not math.isfinite(c):
         return None
     if 1 < c <= 100:  # the model sent a percentage
         c = c / 100

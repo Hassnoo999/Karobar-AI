@@ -9,7 +9,9 @@ from typing import Any
 
 from google import genai
 from google.genai import types
-from PIL import Image
+from PIL import Image, ImageOps
+from pydantic import BaseModel
+from typing import Literal
 
 from app.ai import prompts
 from app.ai.base import (
@@ -28,14 +30,29 @@ logger = logging.getLogger(__name__)
 
 # Max dimension and JPEG quality for images sent to Gemini.
 # Keeps API calls fast even with large phone-camera photos.
-_MAX_IMAGE_PX = 1024
-_JPEG_QUALITY = 80
+_MAX_IMAGE_PX = 2048
+_JPEG_QUALITY = 92
+
+
+class CaptureOutput(BaseModel):
+    """Required, nullable fields: unknown receipt details must not be invented."""
+    event_type: Literal["cash_sale", "credit_sale", "payment_received", "expense"] | None
+    counterparty: str | None
+    amount_rupees: float | None
+    occurred_at: str | None
+    payment_status: Literal["paid", "outstanding"] | None
+    confidence: float | None
+    notes: str | None
 
 
 def _compress_image(image: bytes, mime: str) -> tuple[bytes, str]:
     """Resize large images and convert to JPEG for faster API calls."""
     try:
         img = Image.open(io.BytesIO(image))
+        img = ImageOps.exif_transpose(img)
+        # Small lossless receipts need no lossy JPEG recompression.
+        if max(img.size) <= _MAX_IMAGE_PX and mime == "image/png" and not img.getexif():
+            return image, mime
         # Convert to RGB (required for JPEG — handles RGBA/PNG/WebP/HEIC)
         if img.mode not in ("RGB", "L"):
             img = img.convert("RGB")
@@ -52,7 +69,7 @@ def _compress_image(image: bytes, mime: str) -> tuple[bytes, str]:
         return compressed, "image/jpeg"
     except Exception as exc:
         # If compression fails, send original
-        logger.warning("Image compression failed, sending original: %s", exc)
+        logger.warning("Image preparation failed category=%s; using original", type(exc).__name__)
         return image, mime
 
 
@@ -70,6 +87,7 @@ class GeminiProvider:
         parts: list[types.Part],
         *,
         json_mode: bool = False,
+        capture_schema: bool = False,
         repair_hint: str = "",
     ) -> str:
         if repair_hint:
@@ -78,6 +96,7 @@ class GeminiProvider:
             system_instruction=system,
             temperature=0.1,
             response_mime_type="application/json" if json_mode else None,
+            response_schema=CaptureOutput if capture_schema else None,
         )
         try:
             response = await asyncio.wait_for(
@@ -105,7 +124,7 @@ class GeminiProvider:
 
     async def transcribe_audio(self, audio: bytes, mime: str, *, repair_hint: str = "") -> TranscriptResult:
         parts = [
-            types.Part(text="Transcribe this Urdu/Roman Urdu voice recording from a Pakistani shopkeeper. Keep numbers as spoken."),
+            types.Part(text="Transcribe this merchant recording in its spoken language (Urdu, English or mixed). Do not translate or invent unclear amounts."),
             types.Part(inline_data=types.Blob(data=audio, mime_type=(mime or "audio/webm").split(";")[0])),
         ]
         text = await self._generate(prompts.TRANSCRIPTION_SYSTEM, parts, repair_hint=repair_hint)
@@ -113,7 +132,7 @@ class GeminiProvider:
 
     async def extract_event_from_text(self, text: str, today: date, *, repair_hint: str = "") -> ExtractionResult:
         raw = await self._generate(
-            prompts.extraction_system(today), [types.Part(text=text)], json_mode=True, repair_hint=repair_hint
+            prompts.extraction_system(today), [types.Part(text=text)], json_mode=True, capture_schema=True, repair_hint=repair_hint
         )
         return normalize_extraction(parse_json_object(raw))
 
@@ -124,7 +143,7 @@ class GeminiProvider:
             types.Part(inline_data=types.Blob(data=compressed, mime_type=compressed_mime)),
         ]
         raw = await self._generate(
-            prompts.receipt_system(today), parts, json_mode=True, repair_hint=repair_hint
+            prompts.receipt_system(today), parts, json_mode=True, capture_schema=True, repair_hint=repair_hint
         )
         return normalize_extraction(parse_json_object(raw))
 

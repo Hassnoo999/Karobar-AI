@@ -58,18 +58,17 @@ class Settings(BaseSettings):
         return origins
 
     def provider_chain(self) -> list[str]:
-        """Resolve the ordered provider chain. The Demo provider is always the floor."""
+        """Real APIs only by default; demo is an explicit local test fixture."""
         mode = (self.ai_provider or "auto").strip().lower()
         if mode not in ("auto", "groq", "gemini", "demo"):
             mode = "auto"
         if mode == "demo":
-            return ["demo"]
+            return [] if self.deployed else ["demo"]
         chain: list[str] = []
         if mode in ("auto", "groq") and self.groq_api_key:
             chain.append("groq")
         if mode in ("auto", "gemini") and self.gemini_api_key:
             chain.append("gemini")
-        chain.append("demo")
         return chain
 
 
