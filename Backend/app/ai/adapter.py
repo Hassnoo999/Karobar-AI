@@ -6,6 +6,7 @@ Explicit local demo mode remains available for isolated offline tests only.
 from __future__ import annotations
 
 from datetime import date
+import asyncio
 import io
 import logging
 import wave
@@ -15,9 +16,11 @@ from app.ai.base import AI_FAILURE_MESSAGES, ProviderError
 from app.ai.demo_provider import DemoProvider
 from app.ai.gemini_provider import GeminiProvider
 from app.ai.groq_provider import GroqProvider
+from app.ai.openrouter_provider import OpenRouterProvider
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+CAPABILITY_TIMEOUT_SECONDS = 120.0  # voice has two phases; keep both below the 300s cloud limit
 
 
 def _failure_status(exc: Exception) -> int | None:
@@ -35,6 +38,8 @@ def _failure_category(exc: Exception) -> str:
     status = _failure_status(exc)
     if status == 429:
         return "rate_limit"
+    if status == 402:
+        return "quota_exhausted"
     if status in {400, 401, 403, 404, 422}:
         return "configuration"
     if status in {502, 503, 504}:
@@ -58,6 +63,12 @@ class FallbackAdapter:
         return [p.name for p in self.providers]
 
     async def _call(self, method_name: str, /, *args: Any, **kwargs: Any) -> Any:
+        try:
+            return await asyncio.wait_for(self._call_chain(method_name, *args, **kwargs), timeout=CAPABILITY_TIMEOUT_SECONDS)
+        except TimeoutError as exc:
+            raise ProviderError(AI_FAILURE_MESSAGES["timeout"], category="timeout") from exc
+
+    async def _call_chain(self, method_name: str, /, *args: Any, **kwargs: Any) -> Any:
         last_error: Exception = ProviderError("no provider configured", category="not_configured")
         for provider in self.providers:
             if method_name in getattr(provider, "unsupported_capabilities", ()):
@@ -135,10 +146,14 @@ def get_adapter() -> FallbackAdapter:
         for name in settings.provider_chain():
             if name == "groq":
                 providers.append(GroqProvider())
+            elif name == "groq_backup":
+                providers.append(GroqProvider(api_key=settings.groq_fallback_api_key, name="groq_backup"))
             elif name == "gemini":
                 providers.append(GeminiProvider())
             elif name == "demo":
                 providers.append(DemoProvider())
+            elif name == "openrouter":
+                providers.append(OpenRouterProvider())
         _ADAPTER = FallbackAdapter(providers)
     return _ADAPTER
 

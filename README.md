@@ -22,7 +22,7 @@ Built for the Alibaba Cloud AI Hackathon Pakistan 2026, Financial Inclusion trac
 | Financing references | Five official reference links and manual next steps; no invented sales/history/receipt qualification thresholds |
 | Reminder action | An editable, ready-to-copy udhaar reminder using the real customer balance |
 
-Live capture uses real APIs only: Groq Qwen for text/receipt vision and Whisper for multilingual speech, with Gemini fallback. Missing keys, quota limits or outages produce a specific, safe error—not a canned draft. Retry reuses the selected capture. The review shows the actual provider, voice transcript and AI uncertainty notes. A generic bank transfer is not automatically classified as an udhaar repayment; unclear details require merchant review. Offline AI fixtures exist only for isolated tests; the public sample preview and seed/reset API have been removed.
+Live capture uses real APIs only: Groq Qwen for text/receipt vision and Whisper for multilingual speech, with an optional second Groq key, Gemini and optional OpenRouter text/vision fallback. The selected OpenRouter model does not transcribe audio. Missing keys, quota limits or outages produce a specific, safe error—not a canned draft. Retry reuses the selected capture. The review shows the actual provider, voice transcript and AI uncertainty notes. A generic bank transfer is not automatically classified as an udhaar repayment; unclear details require merchant review. Offline AI fixtures exist only for isolated tests; the public sample preview and seed/reset API have been removed.
 
 ## Product preview
 
@@ -68,7 +68,7 @@ Next.js web app
       v
 FastAPI API + verified Supabase identity
       |
-      +--> Real AI adapter (Groq -> Gemini; no Demo fallback)
+      +--> Real AI adapter (Groq -> optional Groq backup -> Gemini -> optional OpenRouter)
       |
       +--> SQLAlchemy ledger (SQLite locally, Supabase PostgreSQL in cloud)
       +--> Private receipts (local owner registry / merchant-scoped Vercel Blob)
@@ -91,7 +91,7 @@ Copy-Item .env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-Configure the existing Groq and Gemini API keys in the backend's private `.env` for real capture. Without keys, manual entry remains available but AI capture reports unavailable. API docs are at `http://localhost:8000/docs`.
+Configure the existing Groq and Gemini API keys in the backend's private `.env` for real capture. Optional `GROQ_FALLBACK_API_KEY` and `OPENROUTER_API_KEY` extend the chain; `OPENROUTER_MODEL` selects a compatible vision model (default is a free Gemma model). Duplicate Groq keys are not retried as separate accounts. Without keys, manual entry remains available but AI capture reports unavailable. API docs are at `http://localhost:8000/docs`.
 
 ### 2. Frontend
 

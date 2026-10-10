@@ -12,6 +12,8 @@ _TMP_DIR = tempfile.mkdtemp(prefix="karobaar_test_")
 os.environ["AI_PROVIDER"] = "demo"
 os.environ["AUTO_SEED"] = "false"
 os.environ["GROQ_API_KEY"] = ""
+os.environ["GROQ_FALLBACK_API_KEY"] = ""
+os.environ["OPENROUTER_API_KEY"] = ""
 os.environ["GEMINI_API_KEY"] = ""
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP_DIR}/lifespan.db".replace("\\", "/")
 os.environ["UPLOADS_DIR_PATH"] = _TMP_DIR

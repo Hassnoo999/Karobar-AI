@@ -43,8 +43,10 @@ def _mime_to_ext(mime: str) -> str:
 class GroqProvider:
     name = "groq"
 
-    def __init__(self) -> None:
-        self.client = AsyncGroq(api_key=settings.groq_api_key)
+    def __init__(self, *, api_key: str | None = None, name: str = "groq") -> None:
+        self.name = name
+        # The adapter owns fallback; don't retry a throttled key inside the SDK.
+        self.client = AsyncGroq(api_key=api_key or settings.groq_api_key, max_retries=0)
 
     # --- internals ---------------------------------------------------------
 

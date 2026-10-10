@@ -34,7 +34,9 @@ class Settings(BaseSettings):
     # --- AI provider selection ---------------------------------------------
     ai_provider: str = "auto"
     groq_api_key: str = ""
+    groq_fallback_api_key: str = ""
     gemini_api_key: str = ""
+    openrouter_api_key: str = ""
 
     # --- Models -------------------------------------------------------------
     groq_text_model: str = "qwen/qwen3.8-27b"
@@ -42,6 +44,7 @@ class Settings(BaseSettings):
     groq_vision_model: str = "qwen/qwen3.8-27b"
     groq_ping_model: str = "groq/compound-mini"
     gemini_model: str = "gemini-3.6-flash"
+    openrouter_model: str = "google/gemma-4-26b-a4b-it:free"
     ai_timeout_seconds: float = 60.0
 
     @property
@@ -67,15 +70,19 @@ class Settings(BaseSettings):
     def provider_chain(self) -> list[str]:
         """Real APIs only by default; demo is an explicit local test fixture."""
         mode = (self.ai_provider or "auto").strip().lower()
-        if mode not in ("auto", "groq", "gemini", "demo"):
+        if mode not in ("auto", "groq", "gemini", "openrouter", "demo"):
             mode = "auto"
         if mode == "demo":
             return [] if self.deployed else ["demo"]
         chain: list[str] = []
         if mode in ("auto", "groq") and self.groq_api_key:
             chain.append("groq")
+        if mode in ("auto", "groq") and self.groq_fallback_api_key and self.groq_fallback_api_key != self.groq_api_key:
+            chain.append("groq_backup")
         if mode in ("auto", "gemini") and self.gemini_api_key:
             chain.append("gemini")
+        if mode in ("auto", "openrouter") and self.openrouter_api_key:
+            chain.append("openrouter")
         return chain
 
 

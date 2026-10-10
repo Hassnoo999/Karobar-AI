@@ -48,6 +48,14 @@ The short project domain follows the current production release. The `git-main` 
 
 ## Verification and remaining limits
 
-The resumed full backend suite and frontend production build pass; fresh synthetic image tests passed both real providers and generated voice passed Groq. Hosted verification of this new release is recorded in the implementation ledger after deployment, not assumed from the build. Provider outages/quota, real microphone/dialect and handwritten-photo accuracy remain external or human-rehearsal limits. Production test-data cleanup must target identified disposable records only; real account history must be preserved.
+The UI/capture release is Ready on Vercel, and the user-uploaded synthetic receipt returned real Groq/PKR 5,000/credit sale without a ledger confirmation. All five hosted Ask tools matched confirmed records; profit was explicitly unsupported. The final backend suite has 259 passing cases, and the unchanged frontend has a passing 11-page production/TypeScript build. Real microphone/dialect, handwritten-photo quality, full two-account isolation and provider capacity still need their separate checks; perfect AI accuracy is not claimed.
+
+## Optional backup credentials and OpenRouter vision
+
+The fallback order is Groq, a separate Groq backup key, Gemini, then optional OpenRouter. The extra Groq key passed real receipt recognition; identical Groq keys are skipped, and SDK retries do not repeatedly hit a throttled key. OpenRouter officially supports vision, and its key validated, but both tested free Gemma endpoints returned 429, so it is not counted as guaranteed backup capacity. The chosen OpenRouter model handles text/receipts, not transcription; errors distinguish insufficient credits from throttling, and each capability has a 120-second overall deadline.
+
+## Disposable data was removed carefully
+
+Only our earlier QA entries #69, #70 and #71 were removed, together with their now-empty synthetic customer. A read-only inspection first verified their names, amounts, sources, shared owner and absence of other history in that account. Cleanup used one guarded database transaction and saved recovery data outside Git; accounts, real records and original private evidence objects were preserved. The new receipt check remains an unconfirmed draft, not another test transaction.
 
 Detailed checkpoint evidence: [implementation ledger](REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md). The presentation/video remains a separate next step.

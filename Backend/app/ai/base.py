@@ -37,6 +37,7 @@ AI_FAILURE_MESSAGES = {
     "unavailable": "The AI service is temporarily unavailable. Retry this capture or enter the details manually. No entry was saved.",
     "busy": "The AI service is busy right now. Wait a moment and retry this capture, or enter the details manually. No entry was saved.",
     "rate_limit": "The AI service's request limit was reached. Wait and retry, or use manual entry. The team may need to check its API quota. No entry was saved.",
+    "quota_exhausted": "The backup AI service has insufficient credits or quota. Please let the team know; manual entry is available. No entry was saved.",
     "configuration": "AI recognition could not start because of an API configuration or access problem. Please let the team know; manual entry is available. No entry was saved.",
     "not_configured": "No real AI provider is configured for this capture. Please let the team know or enter the details manually. No entry was saved.",
     "timeout": "AI recognition took too long. Retry this capture or enter the details manually. No entry was saved.",

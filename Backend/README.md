@@ -26,10 +26,13 @@ Ledger arithmetic is deterministic; AI proposes drafts, and financial answers us
 | API | FastAPI + Pydantic v2 (OpenAPI at `/docs`) |
 | DB | SQLAlchemy 2.0 ORM + SQLite (Postgres-ready via `DATABASE_URL`) |
 | AI — first priority | **Groq** — Qwen text/receipt vision and Whisper audio |
-| AI — fallback | **Google Gemini** — configured text, vision and audio; current live receipt path |
+| AI — fallback | Optional second **Groq** key, **Gemini** text/vision/audio, optional **OpenRouter** text/vision |
 | AI — offline fixture only | **Demo provider** — explicit local test mode; never an automatic fallback or deployed capture provider |
 
-Real-provider chain: `Groq -> Gemini`, including receipt vision with real image input.
+Real-provider chain: `Groq -> optional Groq backup -> Gemini -> optional OpenRouter`.
+Speech transcription skips the selected OpenRouter model. Receipt/text processing uses
+the same validated extraction contract regardless of provider. Each capability has a
+120-second overall deadline; no unlimited key rotation/retry or Demo substitution.
 Malformed structured output gets one repair retry; exhausted or unconfigured APIs
 return a safe, categorized 503 (service/quota/configuration) or 422 (unusable recognition) and manual-entry guidance, never a fake capture. Whisper detects
 the spoken language instead of forcing Urdu. Gemini capture uses nullable structured
@@ -61,6 +64,9 @@ uvicorn app.main:app --reload --port 8000
 |---|---|---|
 | `AI_PROVIDER` | `auto` | `auto` \| `groq` \| `gemini` \| `demo` |
 | `GROQ_API_KEY` | *(empty)* | Groq key (from console.groq.com) |
+| `GROQ_FALLBACK_API_KEY` | *(empty)* | Optional separate Groq key; identical keys are skipped |
+| `OPENROUTER_API_KEY` | *(empty)* | Optional server-only text/vision backup |
+| `OPENROUTER_MODEL` | `google/gemma-4-26b-a4b-it:free` | Vision/JSON-capable model; free endpoint capacity is not guaranteed |
 | `GEMINI_API_KEY` | *(empty)* | Google AI Studio key |
 | `GROQ_TEXT_MODEL` | `qwen/qwen3.8-27b` | extraction / remaining question classification; verify provider availability before deploying |
 | `GROQ_AUDIO_MODEL` | `whisper-large-v3-turbo` | transcription |
@@ -149,7 +155,7 @@ Backend/
 ## Testing
 
 ```bash
-pytest            # 249 tests; offline (explicit fixtures, isolated SQLite, mocked Blob)
+pytest            # 259 tests; offline (explicit fixtures, isolated SQLite, mocked Blob)
 python scripts/eval_extractor.py   # extraction accuracy against the live chain
 python -m scripts.check_providers  # explicit paid checks; prints no raw provider errors
 python -m scripts.release_preflight --database # read-only TLS/RLS/grants inspection
@@ -160,7 +166,7 @@ Tests pin the seed dataset's designed outcomes: total outstanding **Rs 100,000**
 top debtor **Ahmed Rs 58,500** (oldest unpaid 45 days = overdue), credit sales
 **Rs 198,000**, recovered **Rs 98,000 (~49.5%)**.
 
-The current suite covers ledger precision/provenance, >200-row balances, bounded question tools, upload ownership, evidence claims, safe provider diagnostics, receipt-byte validation and overlapping requests with a one-connection pool. All 249 cases pass. Both real image providers passed synthetic credit and ambiguous-transfer checks; generated English voice passed Groq. Offline checks do not establish live account isolation or real microphone/Urdu-photo accuracy. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) for separate hosted evidence.
+The current suite covers ledger precision/provenance, >200-row balances, bounded question tools, upload ownership, evidence claims, safe diagnostics, receipt-byte validation, backup routing/deadlines and overlapping requests with a one-connection pool. All 259 cases pass. Both original real image providers and the additional Groq key passed synthetic receipt checks. OpenRouter's key is valid but its tested free endpoints returned 429; do not count it as proven available capacity. Offline checks do not establish live account isolation or real microphone/Urdu-photo accuracy. See the [implementation ledger](../docs/REGIONAL_ROUND_IMPLEMENTATION_LEDGER.md) for separate hosted evidence.
 
 ## Receipt ownership and existing files
 

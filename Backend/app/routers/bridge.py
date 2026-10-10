@@ -180,7 +180,9 @@ async def get_config():
         "configured": {
             "alibaba": False,
             "groq": bool(settings.groq_api_key),
+            "groq_backup": bool(settings.groq_fallback_api_key and settings.groq_fallback_api_key != settings.groq_api_key),
             "gemini": bool(settings.gemini_api_key),
+            "openrouter": bool(settings.openrouter_api_key),
         },
         "models": {
             "alibaba": None,
@@ -188,10 +190,11 @@ async def get_config():
             "groq_vision": settings.receipt_vision_model,
             "groq_transcribe": settings.groq_audio_model,
             "gemini": settings.gemini_model,
+            "openrouter": settings.openrouter_model,
         },
-        "missing_required_env": [] if chain else ["GROQ_API_KEY or GEMINI_API_KEY"],
+        "missing_required_env": [] if chain else ["GROQ_API_KEY, GROQ_FALLBACK_API_KEY, GEMINI_API_KEY or OPENROUTER_API_KEY"],
         "capabilities": {
-            "voice": [name for name in chain],
+            "voice": [name for name in chain if name != "openrouter"],
             "receipt": [name for name in chain],
         },
         "message": f"Active chain: {' → '.join(chain)}" if chain else "Real AI is not configured. Manual entry remains available.",
