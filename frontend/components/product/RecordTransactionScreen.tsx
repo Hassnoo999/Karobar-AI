@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowRight, Camera, Check, CheckCheck, FileImage, Mic2, 
 import { useEffect, useRef, useState } from "react";
 import { saveLedgerEvent, understandCapture, type LedgerEvent } from "@/lib/api";
 import { formatPKR } from "@/lib/product-data";
+import { receiptFileError, receiptMime, withTransferDirection, type TransferDirection } from "@/lib/receipt-review";
 import { useProductData } from "./useProductData";
 import { PageHeading, SourceBadge } from "./ui";
 
@@ -40,6 +41,11 @@ export function RecordTransactionScreen() {
   const [error, setError] = useState("");
   const [duplicateReviewed, setDuplicateReviewed] = useState(false);
   const [preview, setPreview] = useState("");
+  const [dragging, setDragging] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+  const [transferDirection, setTransferDirection] = useState<TransferDirection | null>(null);
+  const dragDepth = useRef(0);
+  const captureInFlight = useRef(false);
   const input = useRef<HTMLInputElement>(null);
   const retryCapture = useRef<{kind: "voice" | "receipt"; file: File} | null>(null);
   const review = useRef<HTMLElement>(null);
@@ -52,6 +58,7 @@ export function RecordTransactionScreen() {
   const busy = status === "preparing" || status === "recording" || status === "extracting" || status === "saving";
   const today = dashboard?.today ?? pktDate();
   const canCapture = connection === "live" && !busy && status !== "review";
+  const hasTransferParties = !!(draft?.source === "photo" && (draft.sender_name || draft.recipient_name));
   const validation: string[] = [];
   if (draft) {
     if (!draft.event_type) validation.push("Choose a transaction type.");
@@ -78,6 +85,8 @@ export function RecordTransactionScreen() {
     if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
     previewUrl.current = "";
     retryCapture.current = null;
+    dragDepth.current = 0;
+    setDragging(false); setUploadError(""); setTransferDirection(null);
     setPreview(""); setSourceName(""); setError(""); setDraft(null); setDuplicateReviewed(false); setStatus("idle"); setMode(nextMode);
     if (input.current) input.current.value = "";
   }
@@ -87,11 +96,13 @@ export function RecordTransactionScreen() {
     setSourceName("Manual entry"); setStatus("review");
   }
   async function processFile(kind: "voice" | "receipt", file: File) {
+    if (captureInFlight.current || saving.current || status === "review") return;
     retryCapture.current = {kind, file};
     if (!file.size) {setError("This capture is empty. Please record again or choose another photo."); setStatus("error"); return;}
     if (file.size > 4 * 1024 * 1024) {setError(kind === "receipt" ? "Choose a receipt smaller than 4 MB." : "Keep voice notes under 4 MB. Try a shorter recording."); setStatus("error"); return;}
+    captureInFlight.current = true;
     const request = ++generation.current;
-    setStatus("extracting"); setError(""); setDraft(null); setSourceName(file.name); setDuplicateReviewed(false);
+    setStatus("extracting"); setError(""); setDraft(null); setSourceName(file.name); setDuplicateReviewed(false); setUploadError(""); setTransferDirection(null);
     if (kind === "receipt") {
       if (previewUrl.current) URL.revokeObjectURL(previewUrl.current);
       previewUrl.current = URL.createObjectURL(file); setPreview(previewUrl.current);
@@ -106,7 +117,19 @@ export function RecordTransactionScreen() {
     } catch (err) {
       if (request !== generation.current) return;
       setError(err instanceof Error && err.message !== "Failed to fetch" ? err.message : "The capture could not reach the server. Check your connection and retry; no entry was saved."); setStatus("error");
-    }
+    } finally {captureInFlight.current = false;}
+  }
+  function receiveReceipt(files: File[]) {
+    if (!canCapture || captureInFlight.current) return;
+    const message = receiptFileError(files);
+    if (message) {setUploadError(message); return;}
+    setUploadError("");
+    const file = files[0];
+    void processFile("receipt", file.type ? file : new File([file], file.name, {type: receiptMime(file)}));
+  }
+  function chooseTransferDirection(direction: TransferDirection) {
+    setTransferDirection(direction);
+    setDraft(current => current ? withTransferDirection(current, direction) : current);
   }
   async function startRecording() {
     if (!canCapture || requestingMic.current) return;
@@ -172,8 +195,21 @@ export function RecordTransactionScreen() {
         <div className="px-6 py-7 text-center">
           <h2 className="!text-lg">{mode === "voice" ? "Say it the way you would." : mode === "receipt" ? "Keep the receipt. Capture the details." : "A simple, honest fallback."}</h2>
           <p className="mx-auto mt-2 max-w-xs text-xs leading-6 text-[#627258]">{mode === "voice" ? 'Urdu, English or mixed speech. Try: “Naveed ne 5,000 rupay ka saman udhaar liya.” · One transaction, up to 4 MB.' : mode === "receipt" ? "JPEG, PNG or WebP · up to 4 MB. Keep the total and date clearly visible. Export HEIC photos as JPEG first." : "Enter the facts yourself. No AI confidence is assigned to a manual entry."}</p>
-          {mode === "voice" ? <div className="py-8"><button onClick={() => status === "recording" ? recorder.current?.stop() : void startRecording()} disabled={status !== "recording" && !canCapture} className={"mx-auto grid h-28 w-28 place-items-center rounded-full border-8 border-[#edf4e8] text-white shadow-[0_8px_32px_rgba(41,91,58,.1)] " + (status === "recording" ? "record-pulse bg-[#b56049]" : "bg-[#336d48]")} aria-label={status === "recording" ? "Stop recording" : "Start voice recording"}>{status === "recording" ? <Square size={28} fill="currentColor" /> : <Mic2 size={34} strokeWidth={1.5} />}</button><p aria-live="polite" className="mt-4 text-xs font-medium text-[#496b50]">{status === "recording" ? "Listening… tap to stop" : status === "extracting" ? "Reading your capture…" : "Tap to speak · Urdu or Roman Urdu"}</p></div> : mode === "receipt" ? <button onClick={() => input.current?.click()} disabled={!canCapture} className="my-6 flex min-h-[168px] w-full flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-[#c6dbc4] bg-[#f7faf3] text-sm text-[#527552]"><Upload size={25} strokeWidth={1.4} /><span>Choose a receipt photo</span><span className="text-xs text-[#627258]">Your original is retained as evidence</span></button> : <div className="my-8 flex justify-center"><PenLine size={35} className="text-[#627258]" strokeWidth={1.3} /></div>}
-          <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" aria-label="Receipt photo" onChange={event => {const file = event.target.files?.[0]; if (file) void processFile("receipt", file);}} />
+          {mode === "voice" ? <div className="py-8"><button onClick={() => status === "recording" ? recorder.current?.stop() : void startRecording()} disabled={status !== "recording" && !canCapture} className={"mx-auto grid h-28 w-28 place-items-center rounded-full border-8 border-[#edf4e8] text-white shadow-[0_8px_32px_rgba(41,91,58,.1)] " + (status === "recording" ? "record-pulse bg-[#b56049]" : "bg-[#336d48]")} aria-label={status === "recording" ? "Stop recording" : "Start voice recording"}>{status === "recording" ? <Square size={28} fill="currentColor" /> : <Mic2 size={34} strokeWidth={1.5} />}</button><p aria-live="polite" className="mt-4 text-xs font-medium text-[#496b50]">{status === "recording" ? "Listening… tap to stop" : status === "extracting" ? "Reading your capture…" : "Tap to speak · Urdu or Roman Urdu"}</p></div> : mode === "receipt" ? <div
+            role="group" aria-label="Receipt drop zone" aria-disabled={!canCapture}
+            onDragEnter={event => {event.preventDefault(); if (canCapture && event.dataTransfer.types.includes("Files")) {dragDepth.current++; setDragging(true);}}}
+            onDragOver={event => {event.preventDefault(); event.dataTransfer.dropEffect = canCapture ? "copy" : "none";}}
+            onDragLeave={event => {event.preventDefault(); dragDepth.current = Math.max(0, dragDepth.current - 1); if (!dragDepth.current) setDragging(false);}}
+            onDrop={event => {event.preventDefault(); dragDepth.current = 0; setDragging(false); receiveReceipt(Array.from(event.dataTransfer.files));}}
+            className={"my-6 flex min-h-[190px] flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-6 transition-colors " + (dragging ? "border-[#27805b] bg-[#e6f5eb]" : "border-[#c6dbc4] bg-[#f7faf3]") + (!canCapture ? " opacity-50" : "")}
+          >
+            <Upload size={27} strokeWidth={1.4} className="text-[#527552]" />
+            <p className="text-sm font-medium text-[#375d43]">{dragging ? "Drop your receipt here" : "Drag a receipt photo here"}</p>
+            <button onClick={() => input.current?.click()} disabled={!canCapture} className="ui-button-secondary min-h-10">Choose a receipt photo</button>
+            <span className="text-xs text-[#627258]">One photo · JPEG, PNG or WebP · up to 4 MB</span>
+          </div> : <div className="my-8 flex justify-center"><PenLine size={35} className="text-[#627258]" strokeWidth={1.3} /></div>}
+          {uploadError ? <p role="alert" className="mb-4 text-xs leading-5 text-[#a55e43]">{uploadError}</p> : null}
+          <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" aria-label="Receipt photo" onChange={event => {const files = Array.from(event.target.files ?? []); event.target.value = ""; if (files.length) receiveReceipt(files);}} />
           {mode === "voice" ? <button onClick={() => {reset("receipt"); input.current?.click();}} disabled={!canCapture} className="ui-button-secondary w-full"><FileImage size={16} /> Use a receipt instead</button> : null}
           {status === "review" ? <p className="mt-4 text-xs text-[#627258]">Finish or discard this draft before another capture.</p> : null}
         </div>
@@ -188,17 +224,24 @@ export function RecordTransactionScreen() {
         {draft && (status === "review" || status === "saved") ? <div className="p-5 md:p-6">
           <div className="mb-5 flex items-center gap-3 rounded-xl bg-[#f6f8f0] p-3">
             {preview ? <img src={preview} alt="Uploaded receipt preview" className="h-14 w-14 rounded-lg border border-[#e0e7d7] object-cover" /> : <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#e8f0df] text-[#69805a]">{draft.source === "manual" ? <PenLine size={18} /> : <Mic2 size={18} />}</span>}
-            <div className="min-w-0 flex-1"><p className="truncate text-xs font-medium">{sourceName}</p><div className="mt-1 flex flex-wrap items-center gap-2"><SourceBadge source={draft.source} provider={draft.ai_provider} />{draft.ai_provider && draft.ai_provider !== "demo" ? <span className="text-[11px] capitalize text-[#627258]">{draft.ai_provider}</span> : null}</div></div>
+            <div className="min-w-0 flex-1"><p className="truncate text-xs font-medium">{sourceName}</p><div className="mt-1 flex flex-wrap items-center gap-2"><SourceBadge source={draft.source} /></div></div>
           </div>
           {draft.raw_input && draft.source !== "manual" ? <blockquote className="mb-5 border-l-2 border-[#acc9a0] pl-3 text-xs leading-6 text-[#708064]">{draft.raw_input}</blockquote> : null}
-          {draft.transcript_provider ? <p className="mb-3 text-xs capitalize text-[#627258]">Speech recognition: {draft.transcript_provider} · Transaction extraction: {draft.ai_provider}</p> : null}
           {draft.notes ? <div role="status" className="mb-5 rounded-xl border border-[#e5d3ae] bg-[#fff6df] p-3 text-xs leading-5 text-[#917037]"><strong>AI review note:</strong> {draft.notes}</div> : null}
+          {hasTransferParties ? <fieldset className="mb-5 rounded-xl border border-[#dce8df] bg-[#f7faf7] p-4">
+            <legend className="px-1 text-xs font-medium text-[#375d43]">People on this receipt</legend>
+            <dl className="grid gap-3 text-xs sm:grid-cols-2"><div><dt className="text-[#627258]">Sender</dt><dd className="mt-1 break-words font-medium">{draft.sender_name || "Not readable"}</dd></div><div><dt className="text-[#627258]">Recipient</dt><dd className="mt-1 break-words font-medium">{draft.recipient_name || "Not readable"}</dd></div></dl>
+            {draft.transfer_purpose ? <p className="mt-3 text-xs leading-5 text-[#627258]">Receipt purpose: {draft.transfer_purpose}</p> : null}
+            {status === "review" ? <><p className="mt-4 text-xs leading-5 text-[#627258]">Which side is your business? We’ll fill the other person’s name for you.</p><div className="mt-3 flex flex-wrap gap-2">{(["received", "sent"] as const).map(direction => <button key={direction} type="button" aria-pressed={transferDirection === direction} onClick={() => chooseTransferDirection(direction)} className={transferDirection === direction ? "ui-button-primary" : "ui-button-secondary"}>{direction === "received" ? "I received this" : "I sent this"}</button>)}</div></> : null}
+            {!draft.event_type ? <p className="mt-3 text-xs leading-5 text-[#917037]">A transfer alone doesn’t tell us whether this is a new sale, earlier udhaar repayment or business expense. Choose its business purpose below; discard personal transfers.</p> : null}
+          </fieldset> : null}
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="ui-field">Transaction type<select className="ui-input" value={draft.event_type ?? ""} disabled={status !== "review"} onChange={event => setDraft({...draft, event_type: event.target.value as LedgerEvent["event_type"]})}><option value="" disabled>Choose a type</option><option value="sale">Cash sale</option><option value="credit_given">Credit sale / udhaar</option><option value="credit_received">Customer repayment</option><option value="expense">Business expense</option></select></label>
-            <label className="ui-field">{draft.event_type === "expense" ? "Supplier / description (optional)" : "Customer"}<input className="ui-input" maxLength={120} value={draft.customer_name ?? ""} disabled={status !== "review"} placeholder={draft.event_type === "sale" ? "Walk-in (optional)" : "Customer name"} onChange={event => setDraft({...draft, customer_name: event.target.value})} /></label>
+            <label className="ui-field">Transaction type<select className="ui-input" value={draft.event_type ?? ""} disabled={status !== "review"} onChange={event => {const type = event.target.value as LedgerEvent["event_type"]; setDraft({...draft, event_type: type, payment_type: type === "credit_given" || type === "credit_received" ? "credit" : "cash"});}}><option value="" disabled>Choose a type</option><option value="sale" disabled={hasTransferParties && transferDirection === "sent"}>Paid sale (cash / transfer)</option><option value="credit_given">Credit sale / udhaar</option><option value="credit_received" disabled={hasTransferParties && transferDirection === "sent"}>Customer repayment</option><option value="expense" disabled={hasTransferParties && transferDirection === "received"}>Business expense</option></select></label>
+            <label className="ui-field">{draft.event_type === "expense" ? "Supplier / description (optional)" : "Customer"}<input className="ui-input" maxLength={120} value={draft.customer_name ?? ""} disabled={status !== "review"} placeholder={hasTransferParties && !transferDirection && !draft.customer_name ? "Choose received / sent above, or enter a name" : draft.event_type === "sale" ? "Walk-in (optional)" : "Customer name"} onChange={event => setDraft({...draft, customer_name: event.target.value})} /></label>
             <label className="ui-field">Amount (PKR)<input className="ui-input tabular-nums" type="number" min="0.01" step="0.01" inputMode="decimal" value={draft.amount ?? ""} disabled={status !== "review"} placeholder="0.00" onChange={event => setDraft({...draft, amount: event.target.value === "" ? null : Number(event.target.value)})} /></label>
             <label className="ui-field">Transaction date<input className="ui-input" type="date" max={today} value={draft.date ?? ""} disabled={status !== "review"} onChange={event => setDraft({...draft, date: event.target.value})} /></label>
           </div>
+          {draft.event_type === "credit_given" ? <p className="mt-3 text-xs leading-5 text-[#627258]">Use udhaar for goods sold with payment still outstanding, not a completed money transfer.</p> : draft.event_type === "credit_received" ? <p className="mt-3 text-xs leading-5 text-[#627258]">Repayment settles earlier customer udhaar; it is not another sale.</p> : null}
           {draft.source !== "manual" ? <p className="mt-4 text-xs leading-5 text-[#627258]">Model confidence: {draft.confidence == null ? "not supplied" : Math.round(draft.confidence * 100) + "%"} · An estimate, not proof of accuracy.{draft.confidence != null && draft.confidence < .7 ? " Please review carefully." : ""}</p> : null}
           {draft.possible_duplicate && status === "review" ? <label className="mt-4 flex items-start gap-3 rounded-xl border border-[#e5d3ae] bg-[#fffaec] p-4 text-xs leading-5 text-[#90703b]"><input type="checkbox" className="mt-1 h-4 w-4 shrink-0" checked={duplicateReviewed} onChange={event => setDuplicateReviewed(event.target.checked)} /><span>Possible duplicate of entry #{draft.duplicate_of}. I checked the ledger and this is a separate transaction.</span></label> : null}
           {status === "review" && validation.length ? <ul className="mt-4 space-y-1 text-xs text-[#a47538]" aria-live="polite">{validation.map(note => <li key={note} className="flex items-start gap-2"><AlertTriangle size={13} className="mt-0.5 shrink-0" />{note}</li>)}</ul> : null}

@@ -38,6 +38,9 @@ class CaptureOutput(BaseModel):
     """Required, nullable fields: unknown receipt details must not be invented."""
     event_type: Literal["cash_sale", "credit_sale", "payment_received", "expense"] | None
     counterparty: str | None
+    sender_name: str | None = None
+    recipient_name: str | None = None
+    transfer_purpose: str | None = None
     amount_rupees: float | None
     occurred_at: str | None
     payment_status: Literal["paid", "outstanding"] | None

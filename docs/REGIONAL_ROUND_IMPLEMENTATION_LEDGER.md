@@ -1,6 +1,6 @@
 # Karobaar AI regional-round implementation ledger
 
-Last updated: 10 October 2026 (PKT). Regional presentation: 11 October, FAST NUCES Islamabad, per the team.
+Last updated: 11 October 2026 (PKT). Regional presentation: 11 October, FAST NUCES Islamabad, per the team.
 
 ## Working agreement
 
@@ -476,6 +476,40 @@ Remaining: owner rotates chat-disclosed backup keys; OpenRouter free-endpoint ca
 Code **3b262c9d518a90493e01836bf8327133f3d79195** is pushed; local/remote SHAs match and the working tree is clean. Production **3s2fDgrLh9kSCXk2SJhK7mxjuaAL** is visibly Ready, **1m02s**. Actual stable-domain config now reports Groq/Groq backup/Gemini for speech and all four for receipts, with no missing credential names. This confirms deployment/configuration, not an induced production-outage test. The additional Groq key also passed generated English speech → transcript → **PKR 2,500 cash sale** extraction. `pip check` remains clean; expanded current-secret scan covers 157 candidate paths with zero matches.
 
 Hosted evidence dashboard still uses the two preserved account rows (one voice, one receipt). Its reminder dialog correctly drafts the deterministic PKR 5,000 balance template and explicitly does not send messages. The successful synthetic receipt draft remains unconfirmed for user review. OpenRouter free endpoints remain 429-limited; no paid model/credit purchase, auth weakening or fake recognition was introduced to mask that result. The owner's key rotation and human rehearsal/security follow-ups remain outstanding as listed above.
+
+## Local receipt and visual refinement — 11 October 2026
+
+User boundary: local changes only; no commit, push, cloud environment change or deployment until approval. Baseline `f54f1db`; existing loopback frontend/backend are available on ports 3001/8001. Preserve the existing local test ledger and production records.
+
+Plan and decisions:
+
+1. Retain readable sender/recipient/purpose as structured receipt draft fields across every real provider, normalization, draft builder and frontend bridge. The current prompt deliberately discards both names when merchant perspective is unknown; do not replace that with an arbitrary customer guess.
+2. Add a small transfer review step: selecting received/sent fills the opposite party into the editable contact field. Explicit sale/udhaar/repayment evidence can still classify automatically; generic and personal transfers must ask the merchant for business purpose rather than inflate sales or receivables. No ledger schema/new event type or auto-save.
+3. Hide provider names from product review (retain backend diagnostics), add single-file drag-and-drop with shared type/size checks, preserve chooser/retry/manual flow and protect an in-progress draft from replacement.
+4. Improve visible landing/sign-in decoration with transparent mint/coral evidence cards, CSS depth/motion and reduced-motion support. Keep text legible and avoid adding a graphics dependency.
+   Additional user request: remove the redundant large K from auth, retain the header brand, and transition landing/auth links smoothly. Use Next client links plus browser-native view snapshots; wait for the destination DOM commit, with a bounded slow-navigation escape and ordinary navigation for reduced-motion/unsupported browsers. No authentication changes or new animation dependency.
+5. Verify normalization/bridge/confirmation and UI guards, full backend tests, Node 22 build and local browser views. Test paid AI only with synthetic receipts; no additional transfer of private financial screenshots. Record actual results and leave all edits uncommitted for local user review.
+
+Checkpoint results:
+
+- Receipt contract implemented: optional sender/recipient/purpose survive shared normalization, Gemini's nullable schema, canonical draft building and frontend bridge. Every real provider uses the updated receipt prompt. The two private user screenshots were inspected locally only, not sent again to AI.
+- Review implemented: received/sent fills the opposite party; switching direction clears contradictory selected type/old customer linkage. Printed customer names still fill directly for explicit business receipts. Generic/personal transfers remain unclassified; no new accounting type or inferred balance. Backend confirmation tests verify the chosen name persists in ledger output.
+- Chooser and drop share type/size/count checks. File-less MIME is inferred from a supported extension and still undergoes server byte validation. Capture-in-flight guard prevents overlapping recognition; active review cannot be replaced. Provider text removed from capture and original-receipt viewer, retained privately for diagnosis.
+- Visual checkpoint: local desktop homepage and sign-in inspected in Chrome, transparent evidence scene visible, no horizontal homepage overflow. Existing brand coin remains in loader/later story and compact layout. New decoration has no JS animation loop or new dependency, is aria-hidden, and honors existing reduced-motion CSS.
+- Automated verification: **272 backend tests passed in 9.38s**, including 13 receipt regressions; **5 Node receipt helper tests passed**, TypeScript clean. Node 22 webpack production build passed all 11 pages. `git diff --check` clean apart from normal line-ending notices.
+- Actual local HTTP recognition: generic transfer PKR 150 and Family & Friends PKR 5,000 preserve QA sender/receiver and null type; explicit prior-udhaar repayment PKR 2,000 and unpaid sales invoice PKR 5,000 produce the correct type/contact. The first generic/personal calls returned 503; one retry per case succeeded via Gemini. No forced Demo result or unlimited retry. Existing local ledger **63 → 63**, no confirmations. Probe and synthetic images live outside Git in `tmp/regional-audit/receipt-parties-local-probe.py` and `receipt-parties-*.png`.
+- Automated browser upload remains blocked by Chrome extension file access. The user's first manual drag/drop worked but recognition returned a request-limit error. One bounded fresh-process diagnostic logged **Groq 429 → Groq backup 429 → Gemini success**, preserving both names and PKR 150. This supports provider throttling, not a local upload defect, but does not prove the exact rejected user's request had the same provider sequence. Later the user supplied two successful local receipt screenshots: both parties displayed, sent direction selected with an editable recipient, and another receipt marked saved with its chosen contact. This closes the populated review/manual-save UI gate by user evidence; spelling can still require correction and provider uptime is not guaranteed. The user's confirmed local test entries must be preserved; the earlier 63→63 count describes only our unconfirmed synthetic probes.
+- Auth refinement: removed only the large standalone K, kept the header logo, and added public client-side links with a short page crossfade, shared evidence artwork morph and soft form reveal. Sign-in/create-account destinations remain distinct. Chrome verified signup→signin, one shared scene, no large logo and no horizontal overflow; the fresh page has no hydration issue. A stale hot-reload/prefetch snapshot briefly mixed old markup with new code; a fresh reload resolved it, not an auth failure. Reduced-motion skips the snapshot transition; slow navigation releases it after 1.8 seconds. Merchant routes/authentication logic are unchanged.
+- Final frontend build after removing the saved-receipt provider label also passes all 11 pages and TypeScript. No cloud endpoint or setting changed to hide the local provider-capacity result.
+- Final auth/navigation build also passes all 11 pages and TypeScript; the five receipt helper tests pass again. Fresh Chrome navigation covers landing→signin→signup→signin→home→signin, with no additional browser errors after reload. Saved visual proof: `tmp/regional-audit/local-evidence-hero-final.png` and `local-auth-final.png`, outside Git. No files staged or commits created.
+
+Handoff: frontend `http://127.0.0.1:3001/record`, homepage `/`, sign-in visual `/signin`; backend `http://127.0.0.1:8001/api/health`. All work remains uncommitted at baseline `f54f1db`; production/cloud settings and records unchanged. User local drag/drop/name-selection/save rehearsal is confirmed by screenshots. Remaining: review extracted names/purpose per receipt, provider-capacity rehearsal, broader security gates, and explicit approval before any commit/push/deployment.
+
+## Approved publication — 11 October 2026
+
+The user reviewed the local receipt and visual refinements and explicitly approved committing to GitHub and updating deployment. The previous local-only boundary is now superseded for this reviewed pass. Target: `Hassnoo999/Karobar-AI`, `main`, Vercel `karobar-ai` in `hassanbinsaqib01-5133s-projects`, stable URL `https://project-4ps4k.vercel.app/`.
+
+Release gates: inspect the diff and ignore rules, preserve test/merchant data, publish the reviewed source, match the Vercel production commit, then verify live artwork/account links and the backend health/auth boundary. Existing passing 272-test backend suite, five receipt helper cases, TypeScript/build and user receipt screenshots form the pre-release evidence. No new credentials, account deletion, database migration or provider-capacity guarantee is part of this publication. Hosted results are appended only after observation.
 
 ## Update protocol
 

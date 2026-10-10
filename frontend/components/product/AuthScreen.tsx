@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
+import { PublicLink as Link } from "@/components/PublicNavigation";
 import { useRouter } from "next/navigation";
 import { Check, Eye, EyeOff, LockKeyhole, Mail, Phone, Store, UserRound } from "lucide-react";
 import { FormEvent, useState } from "react";
-import { BrandLogo, BrandSymbol } from "@/components/BrandLogo";
+import { BrandLogo } from "@/components/BrandLogo";
+import { EvidenceScene } from "@/components/EvidenceScene";
 import { supabase, isAuthEnabled } from "@/lib/supabase";
 
 export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
@@ -71,16 +72,14 @@ export function AuthScreen({ mode }: { mode: "signin" | "signup" }) {
   return (
     <main className="auth-screen grid min-h-screen bg-[#f6f9f7] lg:grid-cols-[.9fr_1.1fr]">
       <section className="relative hidden overflow-hidden bg-[#052d25] p-12 text-white lg:flex lg:flex-col">
-        <div className="auth-proof-scene" aria-hidden="true">
-          <div className="auth-proof-orbit"><span className="auth-proof-sheet"><i /><i /><i /><b>✓</b></span><span className="auth-proof-sheet auth-proof-sheet-back"><i /><i /><i /></span><span className="auth-proof-wave">▂ ▅ ▃ ▇ ▄ ▂ ▅</span></div>
-        </div>
+        <div className="auth-proof-scene"><EvidenceScene className="evidence-auth" /></div>
         <Link href="/"><BrandLogo inverse /></Link>
-        <div className="my-auto max-w-lg"><BrandSymbol className="h-24 w-24 text-white/12" /><h1 className="mt-8 font-display text-6xl leading-[.98]">Every shop has a story.<br /><span className="text-[#67ddb9]">Now it has proof.</span></h1><p className="mt-7 max-w-md text-lg leading-8 text-white/62">Build a trusted financial memory from the voice notes, receipts, and customer relationships you already use.</p><div className="mt-10 space-y-4">{["Merchant-confirmed ledger entries", "Answers grounded in your records", "Financing readiness without invented claims"].map((item) => <p key={item} className="flex items-center gap-3 text-sm font-bold text-white/78"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#67ddb9] text-[#052d25]"><Check size={14} /></span>{item}</p>)}</div></div>
+        <div className="my-auto max-w-lg py-12"><h1 className="font-display text-6xl leading-[.98]">Every shop has a story.<br /><span className="text-[#67ddb9]">Now it has proof.</span></h1><p className="mt-7 max-w-md text-lg leading-8 text-white/62">Build a trusted financial memory from the voice notes, receipts, and customer relationships you already use.</p><div className="mt-10 space-y-4">{["Merchant-confirmed ledger entries", "Answers grounded in your records", "Financing readiness without invented claims"].map((item) => <p key={item} className="flex items-center gap-3 text-sm font-bold text-white/78"><span className="grid h-6 w-6 place-items-center rounded-full bg-[#67ddb9] text-[#052d25]"><Check size={14} /></span>{item}</p>)}</div></div>
         <p className="text-xs text-white/38">Financial evidence designed for Pakistani small businesses.</p>
       </section>
 
       <section className="flex min-h-screen items-center justify-center px-5 py-10 md:px-10">
-        <div className="w-full max-w-md">
+        <div key={mode} className="auth-form-reveal w-full max-w-md">
           <Link href="/" className="mb-10 inline-flex lg:hidden"><BrandLogo /></Link>
           <p className="text-sm font-extrabold text-[#08775b]">{mode === "signin" ? "Welcome back" : "Create your merchant account"}</p>
           <h2 className="mt-2 text-3xl font-extrabold tracking-tight md:text-4xl">{mode === "signin" ? "Sign in to Karobaar" : "Start building proof"}</h2>

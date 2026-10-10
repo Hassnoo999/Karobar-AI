@@ -55,6 +55,9 @@ class ExtractionResult(BaseModel):
     provider: str = ""
     event_type: EventType | None = None
     counterparty: str | None = None
+    sender_name: str | None = None
+    recipient_name: str | None = None
+    transfer_purpose: str | None = None
     amount_rupees: float | None = None
     occurred_at: date | None = None
     payment_status: PaymentStatus | None = None
@@ -133,12 +136,23 @@ def normalize_extraction(obj: dict[str, Any]) -> ExtractionResult:
     return ExtractionResult(
         event_type=event_type,
         counterparty=counterparty,
+        sender_name=_coerce_receipt_text(obj.get("sender_name"), 120),
+        recipient_name=_coerce_receipt_text(obj.get("recipient_name"), 120),
+        transfer_purpose=_coerce_receipt_text(obj.get("transfer_purpose"), 240),
         amount_rupees=_coerce_amount(obj.get("amount_rupees")),
         occurred_at=_coerce_date(obj.get("occurred_at")),
         payment_status=status,
         confidence=_coerce_confidence(obj.get("confidence")),
         notes=notes,
     )
+
+
+def _coerce_receipt_text(value: Any, limit: int) -> str | None:
+    if not isinstance(value, str):
+        return None
+    text = " ".join(value.split())
+    # Reject overlong fields rather than silently truncating a person's name.
+    return text if text and len(text) <= limit else None
 
 
 def normalize_tool_call(obj: dict[str, Any]) -> ToolCall:

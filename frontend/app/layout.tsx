@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SupabaseProvider } from "@/components/SupabaseProvider";
+import { PublicNavigationProvider } from "@/components/PublicNavigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className="font-sans">
-        <SupabaseProvider>{children}</SupabaseProvider>
+        <SupabaseProvider><PublicNavigationProvider>{children}</PublicNavigationProvider></SupabaseProvider>
       </body>
     </html>
   );

@@ -1,6 +1,30 @@
 # Latest changes — plain-language release notes
 
-Updated: 10 October 2026. This covers the recent release runs and the resumed repair. Code checks, real API checks and hosted checks are recorded separately; a passing test is not a promise of perfect AI accuracy.
+Updated: 11 October 2026. The team reviewed the receipt/visual refinements below and approved committing, pushing and updating production. Release verification is recorded in the implementation ledger; approval alone is not proof of deployment. The later sections describe the previous 10 October hosted release. Code checks, real API checks and hosted checks are recorded separately; a passing test is not a promise of perfect AI accuracy.
+
+## Receipt names no longer disappear when purpose is unclear — local review
+
+The old receipt prompt deliberately left the customer blank when it could not identify the merchant's side of a transfer. The AI now returns sender, recipient and visible payment purpose separately, even when the business type is unknown. Selecting “I received this” fills the sender's name; “I sent this” fills the recipient's name, and the field remains editable. The chosen customer name follows the existing confirmation and ledger path; no database migration or automatic save was added.
+
+## Classify business facts, not just payment success — local review
+
+Explicit sales, unpaid udhaar invoices, earlier-customer repayments and business costs can still be classified automatically. A generic bank transfer cannot reveal whether money was a new sale or repayment, and a Family & Friends receipt may be personal. Those receipts retain their readable names and amounts while asking the merchant to choose a genuine business purpose or discard them. Short guidance explains why udhaar and repayment affect the ledger differently; selecting money direction alone never creates a transaction type.
+
+## Cleaner capture review and drag-and-drop — local review
+
+Provider names are removed from receipt/voice review and the saved receipt viewer; diagnostic metadata remains on the backend. The receipt area accepts one dragged photo or the existing file chooser, using the same type, empty-file and 4 MB checks. Invalid or multiple files receive a short message before recognition, and an active draft cannot be silently replaced by another drop. The existing retry/manual-entry/confirm flow is unchanged.
+
+## More visible transparent evidence artwork — local review
+
+The desktop homepage now has mint/coral glass-style cards for voice capture, receipt review and ledger evidence, with gentle floating motion and waveform bars. The sign-in page reuses the artwork behind a dark text-protection gradient so the message stays legible. The decoration is HTML/CSS with existing icons, not a new 3D package; reduced-motion preferences stop its CSS animation. The existing brand-coin opening and later scroll story remain, including the compact-screen coin layout.
+
+## Checks and local testing boundary — 11 October
+
+The backend suite passes **272 tests**; five frontend receipt helper tests and TypeScript pass, and the Node 22 production build generates all 11 pages. Synthetic API checks retained transfer parties and correctly recognized explicit repayment/udhaar, without confirming any entries. The user later confirmed successful review/save with two receipt screenshots: parties are visible and received/sent selection fills the editable other person's name. Earlier failures included both Groq keys returning 429 before Gemini succeeded; fallback reduces disruption but cannot guarantee capacity or perfect spelling. No commit, push, production write or cloud deployment has been performed for this pass.
+
+## One logo and a smoother route into your account — local review
+
+The large standalone K is removed because the header already identifies the brand and the second logo competed with the story. Landing sign-in/create-account links now use client navigation, with a short crossfade and the same glass artwork transitioning into the auth layout. The form enters gently; browsers without view-transition support and reduced-motion users retain normal navigation, with no heavy library added. Sign-in still opens sign-in, create account opens signup, and the underlying authentication stays unchanged.
 
 ## Receipt recognition uses both real APIs
 

@@ -25,6 +25,9 @@ class DraftEvent(BaseModel):
 
     event_type: EventType | None = None
     counterparty: str | None = None
+    sender_name: str | None = None
+    recipient_name: str | None = None
+    transfer_purpose: str | None = None
     customer_id: int | None = None
     customer_name: str | None = None
     amount_paisa: int | None = None

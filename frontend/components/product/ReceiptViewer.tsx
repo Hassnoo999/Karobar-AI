@@ -44,7 +44,7 @@ export function ReceiptViewer({entry, onClose}: {entry: StoredLedgerEvent; onClo
       <button onClick={() => dialog.current?.close()} aria-label="Close receipt" className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-[#f4f7ee] text-[#627258]"><X size={19} /></button>
     </div>
     <div className="p-5">
-      <p className="mb-4 text-xs leading-6 text-[#627258]">{eventLabels[entry.event_type ?? "sale"]} · {formatPKR(entry.amount ?? 0)} · {formatDate(entry.date, {day: "numeric", month: "short", year: "numeric"})}{entry.ai_provider ? " · " + entry.ai_provider : ""}</p>
+      <p className="mb-4 text-xs leading-6 text-[#627258]">{eventLabels[entry.event_type ?? "sale"]} · {formatPKR(entry.amount ?? 0)} · {formatDate(entry.date, {day: "numeric", month: "short", year: "numeric"})}</p>
       {error ? <p role="alert" className="rounded-xl bg-[#fff5df] p-4 text-sm leading-6 text-[#986d42]">{error}</p> : imageUrl ? <>
         {previewError ? <p role="status" className="rounded-xl bg-[#f4f7ee] p-4 text-sm leading-6">Your browser cannot preview this image format. You can still download the original.</p> : <img src={imageUrl} alt={"Original receipt attached to entry " + entry.id} onError={() => setPreviewError(true)} className="mx-auto max-h-[58dvh] max-w-full rounded-lg border border-[#e4ecd9] object-contain" />}
         <a href={imageUrl} download={`karobaar-receipt-${entry.id}.${extension}`} className="ui-button-secondary mt-4 w-fit"><Download size={15} /> Download original</a>

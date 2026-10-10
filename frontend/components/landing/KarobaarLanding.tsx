@@ -5,6 +5,8 @@ import Lenis from "lenis";
 import { ArrowDown, ArrowRight, BadgeCheck, Camera, Check, Copy, Menu, Mic, ScanLine, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { EvidenceScene } from "@/components/EvidenceScene";
+import { PublicLink } from "@/components/PublicNavigation";
 import { CinematicStage, LoaderStage } from "./CinematicStage";
 
 const backgrounds = ["#061914", "#dbe9e3", "#071d18", "#f0ded5", "#dce9e4", "#071c24", "#061914"];
@@ -167,7 +169,7 @@ export function KarobaarLanding() {
         <nav className="hidden items-center gap-10 text-sm font-semibold text-white/66 md:flex">
           {navItems.map(([label, href]) => <a key={label} href={href} className="transition-colors hover:text-[#72e0b7]">{label}</a>)}
         </nav>
-        <div className="hidden items-center gap-6 md:flex"><a href="/signin" className="text-sm font-bold text-white/68 hover:text-white">Sign in</a><a href="/signup" className="flex items-center gap-2 border-b border-[#72e0b7] pb-1 text-sm font-bold">Create account <ArrowRight size={15} /></a></div>
+        <div className="hidden items-center gap-6 md:flex"><PublicLink href="/signin" className="text-sm font-bold text-white/68 hover:text-white">Sign in</PublicLink><PublicLink href="/signup" className="flex items-center gap-2 border-b border-[#72e0b7] pb-1 text-sm font-bold">Create account <ArrowRight size={15} /></PublicLink></div>
         <button onClick={() => setMenuOpen(true)} className="text-white md:hidden" aria-label="Open navigation"><Menu size={26} /></button>
       </div>
     </motion.header>
@@ -175,7 +177,7 @@ export function KarobaarLanding() {
     <AnimatePresence>{menuOpen ? <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[80] flex flex-col bg-[#061914] px-6 py-7 text-white">
       <div className="flex items-center justify-between"><Brand inverse /><button onClick={() => setMenuOpen(false)} aria-label="Close navigation"><X size={27} /></button></div>
       <nav className="my-auto space-y-5 font-display text-5xl">{navItems.map(([label, href]) => <a onClick={() => setMenuOpen(false)} className="block" key={label} href={href}>{label}</a>)}</nav>
-      <div className="grid grid-cols-2 gap-3 border-t border-white/14 pt-5"><a href="/signin" className="py-3 text-center text-sm font-bold">Sign in</a><a href="/signup" className="bg-[#72e0b7] py-3 text-center text-sm font-bold text-[#061914]">Create account</a></div>
+      <div className="grid grid-cols-2 gap-3 border-t border-white/14 pt-5"><PublicLink href="/signin" className="py-3 text-center text-sm font-bold">Sign in</PublicLink><PublicLink href="/signup" className="bg-[#72e0b7] py-3 text-center text-sm font-bold text-[#061914]">Create account</PublicLink></div>
     </motion.div> : null}</AnimatePresence>
 
     <motion.div initial={false} animate={opening ? { opacity: 1, scale: 1, filter: "blur(0px)" } : { opacity: 0, scale: 1.015, filter: "blur(10px)" }} transition={{ duration: 1.55, delay: opening ? 0.12 : 0, ease: [0.16, 1, 0.3, 1] }} className="relative z-10">
@@ -186,9 +188,10 @@ export function KarobaarLanding() {
             <p className="mt-8 max-w-lg text-base leading-7 text-white/68 md:text-lg md:leading-8">Voice-first financial proof for the businesses that keep Pakistan moving.</p>
             <div className="mt-9 flex flex-wrap items-center gap-7">
               <a href="#process" className="inline-flex items-center gap-4 bg-[#72e0b7] px-6 py-4 text-sm font-bold text-[#071b16] transition-colors hover:bg-white">See how it works <ArrowRight size={17} /></a>
-              <a href="/signin" className="inline-flex items-center gap-2 border-b border-white/70 pb-1 text-sm font-bold">Open your workspace <ArrowRight size={15} /></a>
+              <PublicLink href="/signin" className="inline-flex items-center gap-2 border-b border-white/70 pb-1 text-sm font-bold">Open your workspace <ArrowRight size={15} /></PublicLink>
             </div>
           </Reveal>
+          <div className="evidence-hero relative hidden items-center justify-center lg:flex"><EvidenceScene /></div>
         </div>
         <a href="#why" aria-label="Scroll to the next section" className="absolute bottom-[106px] left-5 flex items-center gap-3 text-[11px] font-bold uppercase text-white/46 md:bottom-[92px] md:left-10 lg:left-14"><ArrowDown size={16} /> Follow the story</a>
         <div className="absolute inset-x-0 bottom-0 hidden h-[76px] border-t border-white/13 md:grid md:grid-cols-3">
@@ -283,7 +286,7 @@ export function KarobaarLanding() {
           <Brand inverse />
           <h2 className="mt-12 max-w-5xl font-display text-[clamp(3.3rem,7vw,7.4rem)] leading-[0.91]">Your shop already has a story.<br /><span className="text-[#72e0b7]">Give it proof.</span></h2>
           <p className="mt-8 max-w-lg text-lg leading-8 text-white/62">Voice-first financial evidence designed around how real businesses already work.</p>
-          <a href="/signup" className="mt-10 inline-flex items-center gap-4 bg-[#72e0b7] px-6 py-4 text-sm font-bold text-[#071b16] transition-colors hover:bg-white">Create your ledger <ArrowRight size={17} /></a>
+          <PublicLink href="/signup" className="mt-10 inline-flex items-center gap-4 bg-[#72e0b7] px-6 py-4 text-sm font-bold text-[#071b16] transition-colors hover:bg-white">Create your ledger <ArrowRight size={17} /></PublicLink>
         </Reveal>
       </section>
 

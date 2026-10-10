@@ -10,7 +10,7 @@ from datetime import date
 
 from app.services.money import format_pkr
 
-PROMPT_VERSION = "v2-capture"
+PROMPT_VERSION = "v3-receipt-parties"
 
 # --- Transaction extraction (voice transcript or typed text) -----------------
 
@@ -79,7 +79,10 @@ Rules:
   - "credit_sale" if the receipt indicates udhaar/credit with payment_status "outstanding"
   - "payment_received" ONLY if it explicitly identifies repayment of earlier customer udhaar, not merely a completed transfer
   - null if the merchant's role or transaction purpose is unknown. A generic bank/mobile transfer does NOT prove a sale, expense or udhaar repayment; request the purpose in notes.
-- counterparty: the customer for a sale/repayment or supplier for an expense. Do not assume the merchant's own name is the customer. If sender/receiver perspective is unknown, return null and explain in notes.
+- Read names independently of transaction classification. Always extract sender_name from From/Source Account Title and recipient_name from To/Destination Account Title when readable, EVEN when event_type or counterparty is null. Copy the visible name faithfully; do not replace it with a bank name, account number or guessed spelling. Do not infer the merchant's identity from who uploaded the receipt.
+- transfer_purpose: the visible Purpose of Payment, memo or transfer description, or null if absent. Preserve personal-purpose wording such as 'Family & Friends'. Do not include account numbers or transaction IDs.
+- counterparty: the customer for an explicit sale/repayment or supplier for an explicit expense. Use a printed Customer/Supplier name when available, even if classification is uncertain. If a transfer's sender/receiver perspective is unknown, leave counterparty null but RETAIN BOTH readable party names in their fields and ask whether the merchant sent or received it in notes.
+- A successful/paid transfer means money moved, NOT goods sold or previous udhaar repaid. Generic transfers and 'Family & Friends' payments must leave event_type null. A memo explicitly saying 'repayment of previous customer udhaar' supports payment_received; 'goods sold, paid in full' supports cash_sale; an unpaid merchant sales invoice supports credit_sale; a supplier purchase or business bill supports expense. Do not classify udhaar as settled merely because a transfer succeeded. For personal payments, say they should not enter the business ledger unless the merchant confirms a genuine business purpose.
 - amount_rupees: the final transaction total, not account balance, tax alone, phone number, reference number or line-item price. Preserve decimals; null if unreadable. Do not assume a partly paid invoice is wholly unpaid or wholly paid: leave type null and flag partial payment for manual review.
 - occurred_at: the visible transaction date as YYYY-MM-DD; null if missing or ambiguous. Never replace a missing receipt date with today's date.
 - payment_status: "paid" for a clearly settled supported event, "outstanding" for a wholly unpaid credit sale; null if the type or settlement is unknown.
@@ -88,7 +91,7 @@ Rules:
 - Do NOT guess unreadable values — use null instead.
 
 JSON shape:
-{{"event_type": "expense|cash_sale|credit_sale|payment_received"|null, "counterparty": string|null, "amount_rupees": number|null, "occurred_at": "YYYY-MM-DD"|null, "payment_status": "outstanding|paid"|null, "confidence": number, "notes": string|null}}"""
+{{"event_type": "expense|cash_sale|credit_sale|payment_received"|null, "counterparty": string|null, "sender_name": string|null, "recipient_name": string|null, "transfer_purpose": string|null, "amount_rupees": number|null, "occurred_at": "YYYY-MM-DD"|null, "payment_status": "outstanding|paid"|null, "confidence": number, "notes": string|null}}"""
 
 RECEIPT_USER_INSTRUCTION = "Extract the business event from this receipt image and return the JSON object."
 

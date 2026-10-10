@@ -44,8 +44,11 @@ function SceneWorld({ stage }: { stage: MutableRefObject<number> }) {
     if (!root.current || !coin.current) return;
     displayedStage.current = MathUtils.damp(displayedStage.current, stage.current, 2.15, delta);
     const current = displayedStage.current;
+    // The hero uses lightweight glass evidence artwork; retain the brand coin
+    // for the rest of the scroll story and the existing opening sequence.
     const elapsed = clock.getElapsedTime();
     const mobile = viewport.width < 7;
+    root.current.visible = mobile || current > 0.55;
     const x = sample(mobile ? [0.42, -0.28, 0.38, -0.3, 0.34, -0.26, 0.38] : [2.45, -2.05, 2.35, -2, 2.1, -1.95, 2.35], current);
     const y = sample(mobile ? [2.05, 2.02, 2.06, 2.04, 2.06, 2.04, 2] : [0.08, 0, 0.18, 0, 0.04, 0, 0], current);
     const sectionProgress = current - Math.floor(current);

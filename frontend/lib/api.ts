@@ -38,6 +38,9 @@ export type LedgerEvent = {
   event_type: "sale" | "expense" | "credit_given" | "credit_received" | null;
   payment_type: "cash" | "credit" | null;
   customer_name: string | null;
+  sender_name?: string | null;
+  recipient_name?: string | null;
+  transfer_purpose?: string | null;
   amount: number | null;
   currency: string;
   date: string | null;

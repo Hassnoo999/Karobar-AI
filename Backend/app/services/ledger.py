@@ -325,6 +325,9 @@ def build_draft(
     return DraftEvent(
         event_type=event_type,
         counterparty=extraction.counterparty,
+        sender_name=extraction.sender_name,
+        recipient_name=extraction.recipient_name,
+        transfer_purpose=extraction.transfer_purpose,
         customer_id=customer.id if customer else None,
         customer_name=customer.display_name if customer else None,
         amount_paisa=amount_paisa,
