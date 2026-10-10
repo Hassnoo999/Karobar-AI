@@ -8,6 +8,7 @@ provider never fails, so the product always responds.
 from __future__ import annotations
 
 from datetime import date
+import logging
 from typing import Any
 
 from app.ai.base import ProviderError
@@ -15,6 +16,18 @@ from app.ai.demo_provider import DemoProvider
 from app.ai.gemini_provider import GeminiProvider
 from app.ai.groq_provider import GroqProvider
 from app.config import settings
+
+logger = logging.getLogger(__name__)
+
+
+def _failure_status(exc: Exception) -> int | None:
+    """Provider exception text can contain keys/input; retain only numeric status."""
+    cause = exc.__cause__
+    for attribute in ("status_code", "code"):
+        value = getattr(cause, attribute, None)
+        if type(value) is int and 400 <= value <= 599:
+            return value
+    return None
 
 REPAIR_HINT = (
     "IMPORTANT: Your previous reply was not a single valid JSON object. "
@@ -42,10 +55,15 @@ class FallbackAdapter:
                 except ValueError as exc:
                     # malformed model output -> retry same provider once with repair hint
                     last_error = exc
+                    logger.warning("AI output rejected provider=%s capability=%s attempt=%d",
+                                   provider.name, method_name, attempt)
                     continue
                 except ProviderError as exc:
                     # provider unavailable -> next provider immediately
                     last_error = exc
+                    logger.warning("AI provider unavailable provider=%s capability=%s category=%s status=%s",
+                                   provider.name, method_name, type(exc.__cause__ or exc).__name__,
+                                   _failure_status(exc))
                     break
                 result.provider = provider.name
                 return result
