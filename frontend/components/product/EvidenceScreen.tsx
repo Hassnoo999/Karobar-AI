@@ -68,7 +68,7 @@ export function EvidenceScreen() {
     </div>
 
     <section className="mt-7">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-2"><div><h2 className="!text-lg">Explore financing references</h2><p className="mt-1 text-xs leading-6 text-[#627258]">Reference links, not personalized eligibility or lending recommendations.</p></div><span className="ui-badge badge-neutral">Institution decides</span></div>
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-2"><div><h2 className="!text-lg">Explore financing references</h2><p className="mt-1 text-xs leading-6 text-[#627258]">Reference links, not personalized eligibility or lending recommendations.</p></div><Link href="/financing" className="ui-button-primary">Open financing workspace <ArrowRight size={15} /></Link></div>
       <div className="ui-card divide-y divide-[#e6edde] overflow-hidden">{intelligence.financing_matches.length ? intelligence.financing_matches.slice(0, 5).map(match => <details key={match.program.id} className="group">
         <summary className="flex min-h-[82px] cursor-pointer list-none items-center gap-4 px-5 py-4 md:px-6"><span className="hidden h-10 w-10 shrink-0 place-items-center rounded-xl border border-[#dce6d1] bg-[#f6f9ef] text-[#627258] sm:grid"><FileText size={18} strokeWidth={1.4} /></span><div className="min-w-0 flex-1"><h3 className="text-xs font-semibold leading-6">{match.program.name}</h3><p className="mt-1 text-xs text-[#627258]">{match.program.institution}</p></div><ChevronDown size={17} className="shrink-0 text-[#627258] transition-transform group-open:rotate-180" /></summary>
         <div className="border-t border-[#eef2e8] bg-[#fafcf7] px-5 py-5 md:pl-20 md:pr-6">

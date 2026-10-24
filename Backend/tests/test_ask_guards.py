@@ -46,7 +46,7 @@ def test_known_questions_have_exact_tool_and_period(question, tool, args):
     "Who has the most expenses?", "How much profit this month?",
     "How much cash do I have?", "What is my bank balance?", "What is my balance?",
     "Compare Ahmed and Bilal's udhaar", "Ahmed ko reminder bana do",
-    "Loan ke liye eligible hoon?", "What were today's sales?",
+    "What were today's sales?",
     "Last 30 days sales?", "Sales for the last six months?", "All-time sales?",
     "What are my sales for 2026-13?", "What are my sales for 0000-01?",
     "Sales for 2026-09-01?", "Sales for November?", "Sales for November 2026?",
@@ -62,6 +62,16 @@ def test_out_of_scope_or_ambiguous_question_never_gets_a_nearby_number(client, q
     assert "sales_paisa" not in body["data"]
     assert "outstanding_paisa" not in body["data"]
     assert body["answer_source"] == "deterministic_ledger"
+
+
+def test_loan_eligibility_question_clarifies_instead_of_inventing_a_decision(client):
+    body = client.post("/api/ask", json={"question": "Loan ke liye eligible hoon?"}).json()
+    assert body["tool_used"] == "financing_sources"
+    assert body["data"]["status"] == "needs_clarification"
+    assert body["data"]["facts"] == []
+    assert "Which program" in body["answer"]
+    assert "not a lending decision" in body["answer"]
+    assert "sales_paisa" not in body["data"] and "outstanding_paisa" not in body["data"]
 
 
 def test_january_rolls_back_to_previous_year():

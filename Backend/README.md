@@ -195,3 +195,28 @@ Cloud Postgres verifies certificates using Supabase's public CA from Database Se
 Cloud snapshots skip the process-local cache. API responses use `private, no-store`; AI failure responses do not echo provider internals. Voice/receipt uploads are capped at 4 MB to leave multipart headroom below Vercel's request limit. Actual hosted upload sizes and Blob OIDC/persistence still need end-to-end checks. The installed Python dependency audit is clean after PyJWT/urllib3 patches; that is not an overall security certification.
 
 `render.yaml` is an older reference blueprint, not a release-ready alternative: its development SQLite/auto-seed assumptions must not be used for public merchant data. This release targets Vercel; do not deploy that blueprint unchanged. Keep the verified [local booth fallback](../docs/REGIONAL_DEMO_RUNBOOK.md).
+
+## Phase 2 financing — local branch, 23 October 2026
+
+`app/data/financing_catalog_v2.json` contains five official-source references, their review dates, published terms, checkable preparation requirements and lender-only conditions. Unknown product amounts/deadlines stay unknown. This is a reviewed snapshot, not a live lender feed. The old `/financing/programs` and `/financing/readiness` contracts are retained for the evidence passport; new comparisons use only v2.
+
+| Endpoint | Access / behavior |
+| --- | --- |
+| `GET /api/financing/catalog` | Public facts, freshness flag and a countdown only if a sourced closing date exists |
+| `GET /api/financing/catalog/schema` | Public JSON schema for a future proposal workflow; not a write endpoint |
+| `POST /api/financing/assessment` | Authenticated; typed applicant declarations → deterministic preparation checks; no DB/profile write |
+| `POST /api/financing/questions` | Authenticated; `{question, program_id?, profile?, use_ai?}` → cited facts, optional constrained LLM selection |
+
+Preparation percent is declared matching checks divided by the listed checkable checks, with lender-only checks excluded and still visibly unresolved. It is not approval probability or complete bank eligibility. No sales floor, ledger-history business age or receivables-based debt-burden rule is inferred. Applicant payloads exclude identity numbers and accounts; profiles and ledger figures are not placed into the AI selection payload. The user's typed question is still sent when they enable AI assist, so they should not type private identifiers there.
+
+The existing `/api/ask` now routes financing questions to cited catalogue retrieval before ledger classification. Its five accounting tools are unchanged. Optional AI selection reuses the configured provider chain and existing low-temperature prompts, with a 15-second total selection deadline. Only whitelisted fact IDs can reach the answer; invalid IDs, omitted compared programs, unavailable APIs or timeout fall back to reviewed facts. Raw model prose never becomes a loan term or decision.
+
+Validate a proposed snapshot locally:
+
+```powershell
+python scripts/validate_financing_catalog.py
+python scripts/validate_financing_catalog.py path/to/proposed-catalogue.json
+python -m pytest tests/test_phase2_financing.py -q
+```
+
+Validation checks schema/provenance, not whether a bank's published text is true or intake remains open. A future n8n workflow should collect proposals, then require human source review, validation, tests and an approved deployment. No scraper, schedule, hosted n8n, remote write API or auto-publishing was added. Details and known limits: [Phase 2 ledger](../docs/PHASE_2.md).

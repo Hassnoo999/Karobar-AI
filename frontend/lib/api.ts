@@ -224,11 +224,12 @@ async function authHeaders(extra?: Record<string, string>): Promise<Record<strin
   return headers;
 }
 
-async function getJson<T>(path: string): Promise<T> {
+async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   const headers = await authHeaders();
   const response = await fetch(`${API_BASE_URL}${path}`, {
     cache: "no-store",
     headers,
+    signal,
   });
 
   if (!response.ok) {
@@ -368,4 +369,62 @@ export async function seedDemoLedger(): Promise<StoredLedgerEvent[]> {
   // Historical, unrouted components still import this function. No sample
   // mutation is allowed: its server route and product entry point are removed.
   throw new Error("Sample data controls have been removed. Use your signed-in ledger.");
+}
+
+// Phase 2: public reviewed facts and ephemeral, authenticated preparation checks.
+export type FinancingSource = { id: string; title: string; url: string; checked_on: string; note: string };
+export type SchemeTerm = { id: string; label: string; value: string; source_id: string; topic: string };
+export type SchemeCriterion = { id: string; label: string; requirement: string; source_id: string; kind: "range" | "boolean" | "lender" };
+export type FinancingScheme = {
+  id: string; short_name: string; name: string; institution: string; aliases: string[];
+  description: string; application_url: string; availability: "confirm_with_institution" | "open" | "closed";
+  availability_note: string; application_deadline: string | null; days_remaining: number | null;
+  deadline_passed: boolean; sources: FinancingSource[]; terms: SchemeTerm[]; criteria: SchemeCriterion[];
+};
+export type FinancingCatalogue = {
+  schema_version: 2; version: string; reviewed_on: string; generated_on: string;
+  review_after_days: number; source_review_due: boolean; programs: FinancingScheme[];
+};
+export type ApplicantProfile = {
+  age_years?: number | null; business_sector?: "retail" | "it_ecommerce" | "other" | null;
+  resident_pakistani?: boolean | null; valid_cnic?: boolean | null;
+  business_operating_months?: number | null; bank_statement_months?: number | null;
+  bop_relationship_months?: number | null; bop_invited?: boolean | null;
+  two_non_family_guarantors?: boolean | null; within_akhuwat_branch_area?: boolean | null;
+  acceptable_property?: boolean | null; meezan_existing_relationship?: boolean | null;
+  other_isaaf_financing?: boolean | null; requested_amount_rupees?: number | null;
+};
+export type PreparationCheck = {
+  id: string; label: string; requirement: string; source_id: string;
+  state: "declared_match" | "needs_attention" | "unknown" | "lender_check";
+  current_display: string; gap_display: string | null;
+};
+export type SchemeAssessment = {
+  program_id: string; preparation_pct: number; declared_matches: number; checkable_count: number;
+  unknown_count: number; attention_count: number; lender_check_count: number;
+  status: "details_needed" | "review_gaps" | "preparation_complete" | "source_review_due";
+  checks: PreparationCheck[];
+};
+export type FinancingAssessment = {
+  catalogue_version: string; source_review_due: boolean; generated_on: string;
+  programs: SchemeAssessment[]; disclosure: string;
+};
+
+async function financingPost<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}/financing/${path}`, {
+    method: "POST", cache: "no-store", signal,
+    headers: await authHeaders({ "Content-Type": "application/json" }), body: JSON.stringify(body),
+  });
+  if (!response.ok) throw await requestError(response, "Could not check the financing information");
+  return response.json() as Promise<T>;
+}
+
+export function getFinancingCatalogue(signal?: AbortSignal) {
+  return getJson<FinancingCatalogue>("/financing/catalog", signal);
+}
+export function getFinancingAssessment(profile: ApplicantProfile, signal?: AbortSignal) {
+  return financingPost<FinancingAssessment>("assessment", profile, signal);
+}
+export function askFinancingQuestion(question: string, programId: string | undefined, profile: ApplicantProfile, useAi: boolean, signal?: AbortSignal) {
+  return financingPost<AskResponse>("questions", { question, program_id: programId, profile, use_ai: useAi }, signal);
 }

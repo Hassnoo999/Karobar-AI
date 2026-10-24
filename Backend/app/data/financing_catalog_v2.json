@@ -1,0 +1,125 @@
+{
+  "schema_version": 2,
+  "version": "2026-10-23.1",
+  "reviewed_on": "2026-10-23",
+  "review_after_days": 30,
+  "programs": [
+    {
+      "id": "pm-youth-business-agri-loan",
+      "short_name": "PM Youth",
+      "name": "PM Youth Business & Agriculture Loan Scheme",
+      "institution": "Government of Pakistan / participating banks",
+      "aliases": ["pm youth", "pmybals", "pmyb&als", "prime minister", "youth loan", "وزیراعظم", "یوتھ"],
+      "description": "Business and agriculture financing through participating banks for qualifying young applicants.",
+      "application_url": "https://pmybals.pmyp.gov.pk/",
+      "availability_note": "The official portal describes online applications; confirm current intake and bank conditions. No common closing date was verified.",
+      "sources": [{"id": "pmyp", "title": "PMYP official scheme portal", "url": "https://pmybals.pmyp.gov.pk/", "checked_on": "2026-10-23", "note": "Reviewed official indexed portal text; direct research fetch timed out. Reconfirm terms and application availability on the portal."}],
+      "terms": [
+        {"id": "amount", "label": "Published loan tiers", "value": "Tier 1: up to PKR 500,000. Tier 2: above PKR 500,000 to 1,500,000. Tier 3: above PKR 1,500,000 to 7,500,000.", "source_id": "pmyp", "topic": "amount"},
+        {"id": "pricing", "label": "Published markup", "value": "Tier 1: 0%. Tier 2: 5%. Tier 3: 7%. Confirm the applicable offer and other costs with the bank.", "source_id": "pmyp", "topic": "pricing"},
+        {"id": "apply", "label": "Application route", "value": "Apply online through the official PMYP portal. Bank assessment and product-specific documentation still apply.", "source_id": "pmyp", "topic": "application"}
+      ],
+      "criteria": [
+        {"id": "age", "label": "Applicant / qualifying owner age", "requirement": "General age range 21–45; the lower bound is 18 for IT/e-commerce businesses. Other applicant conditions still apply.", "source_id": "pmyp", "kind": "range", "field": "age_years", "minimum": 21, "maximum": 45, "it_minimum": 18, "unit": "years"},
+        {"id": "resident", "label": "Pakistani residency", "requirement": "The portal specifies resident Pakistani applicants.", "source_id": "pmyp", "kind": "boolean", "field": "resident_pakistani", "expected": true},
+        {"id": "amount", "label": "Requested amount", "requirement": "The published tiers extend up to PKR 7,500,000; the bank determines the actual sanctioned amount.", "source_id": "pmyp", "kind": "range", "field": "requested_amount_rupees", "minimum": 1, "maximum": 7500000, "unit": "PKR"},
+        {"id": "bank", "label": "Bank's documentation and appraisal", "requirement": "Confirm identity, business viability, security and tier-specific conditions with the participating bank.", "source_id": "pmyp", "kind": "lender"}
+      ]
+    },
+    {
+      "id": "akhuwat-family-enterprise-loan",
+      "short_name": "Akhuwat",
+      "name": "Akhuwat enterprise financing",
+      "institution": "Akhuwat Islamic Microfinance",
+      "aliases": ["akhuwat", "akhawat", "akhuwath", "اخوت"],
+      "description": "Enterprise finance with branch-led social and business appraisal. Product terms depend on the relevant project.",
+      "application_url": "https://akhuwat.org.pk/programs/loan/products",
+      "availability_note": "Ask the relevant branch about the current enterprise product and available funds. A product-specific amount or closing date was not verified.",
+      "sources": [{"id": "akhuwat-process", "title": "Akhuwat official loan process", "url": "https://donate.akhuwat.org.pk/programs/loan/process", "checked_on": "2026-10-23", "note": "Process requirements verified. Product amounts differ across published project pages; no numeric enterprise cap is asserted here."}],
+      "terms": [
+        {"id": "amount", "label": "Amount and repayment terms", "value": "Confirm the enterprise loan amount, term and charges with the branch. This reviewed process source does not establish a current product-specific amount.", "source_id": "akhuwat-process", "topic": "amount"},
+        {"id": "documents", "label": "Supporting documents", "value": "The process lists applicant identity, utility bills and photos, plus guarantor documents. Additional or project-specific documents may be required.", "source_id": "akhuwat-process", "topic": "documents"},
+        {"id": "apply", "label": "Branch appraisal", "value": "Discuss the application with the relevant branch. Social/business appraisal and the loan approval committee remain institution checks.", "source_id": "akhuwat-process", "topic": "application"}
+      ],
+      "criteria": [
+        {"id": "age", "label": "Applicant age", "requirement": "The official process lists ages 18–62.", "source_id": "akhuwat-process", "kind": "range", "field": "age_years", "minimum": 18, "maximum": 62, "unit": "years"},
+        {"id": "identity", "label": "Valid CNIC prepared", "requirement": "A valid CNIC is required. Karobaar does not collect or verify the number.", "source_id": "akhuwat-process", "kind": "boolean", "field": "valid_cnic", "expected": true},
+        {"id": "guarantors", "label": "Guarantors prepared", "requirement": "The process calls for two guarantors outside the family.", "source_id": "akhuwat-process", "kind": "boolean", "field": "two_non_family_guarantors", "expected": true},
+        {"id": "area", "label": "Branch service area", "requirement": "The applicant must be in the branch's operational area; confirm the local boundary with that branch.", "source_id": "akhuwat-process", "kind": "boolean", "field": "within_akhuwat_branch_area", "expected": true},
+        {"id": "appraisal", "label": "Social and business appraisal", "requirement": "The institution evaluates business capacity and its other applicant conditions. This app cannot establish those facts.", "source_id": "akhuwat-process", "kind": "lender"}
+      ]
+    },
+    {
+      "id": "bop-e-business-qarza",
+      "short_name": "BOP e-Business",
+      "name": "BOP e-Business Qarza",
+      "institution": "The Bank of Punjab",
+      "aliases": ["bop", "bank of punjab", "e-business", "e business", "بینک آف پنجاب"],
+      "description": "Working-capital running finance for selected existing BOP SME customers.",
+      "application_url": "https://www.bop.com.pk/view.aspx?id=3415",
+      "availability_note": "Application is through a link the bank sends to selected customers. The page does not publish a general application deadline.",
+      "sources": [{"id": "bop", "title": "BOP e-Business Qarza product page", "url": "https://www.bop.com.pk/view.aspx?id=3415", "checked_on": "2026-10-23"}],
+      "terms": [
+        {"id": "amount", "label": "Published amount", "value": "PKR 100,000–3,500,000 for working-capital running finance.", "source_id": "bop", "topic": "amount"},
+        {"id": "pricing", "label": "Published markup", "value": "One-year KIBOR plus 9.99% per annum; ask the bank for the current KIBOR, charges and offer.", "source_id": "bop", "topic": "pricing"},
+        {"id": "tenor", "label": "Term and payments", "value": "One-year revolving facility; monthly markup on utilized funds. Published processing fee: PKR 9,500 including FED.", "source_id": "bop", "topic": "tenor"},
+        {"id": "apply", "label": "Application route", "value": "Use the digital link shared by BOP with selected existing customers, rather than assuming public enrolment.", "source_id": "bop", "topic": "application"}
+      ],
+      "criteria": [
+        {"id": "age", "label": "Applicant age", "requirement": "Published age range: 21–60.", "source_id": "bop", "kind": "range", "field": "age_years", "minimum": 21, "maximum": 60, "unit": "years"},
+        {"id": "relationship", "label": "BOP banking relationship", "requirement": "At least one year of banking relationship with BOP.", "source_id": "bop", "kind": "range", "field": "bop_relationship_months", "minimum": 12, "unit": "months"},
+        {"id": "invitation", "label": "Bank invitation", "requirement": "The bank shares the digital application link with selected customers.", "source_id": "bop", "kind": "boolean", "field": "bop_invited", "expected": true},
+        {"id": "amount", "label": "Requested amount", "requirement": "Published facility range: PKR 100,000–3,500,000.", "source_id": "bop", "kind": "range", "field": "requested_amount_rupees", "minimum": 100000, "maximum": 3500000, "unit": "PKR"},
+        {"id": "dbr", "label": "Bank debt-burden and guarantee checks", "requirement": "The page specifies maximum DBR 40% and the borrower's personal guarantee. Customer udhaar owed to you is not your borrowing burden.", "source_id": "bop", "kind": "lender"}
+      ]
+    },
+    {
+      "id": "hbl-small-business-finance",
+      "short_name": "HBL Business",
+      "name": "HBL Small Business Finance",
+      "institution": "Habib Bank Limited",
+      "aliases": ["hbl", "habib bank", "حبیب بینک"],
+      "description": "Secured small-business facilities for working capital and business expansion.",
+      "application_url": "https://www.hbl.com/business/sme-banking/sme-banking/hbl-small-business-finance",
+      "availability_note": "The product page lists branch contact for details. Confirm availability, security and the current offer directly.",
+      "sources": [{"id": "hbl", "title": "HBL Small Business Finance product page", "url": "https://www.hbl.com/business/sme-banking/sme-banking/hbl-small-business-finance", "checked_on": "2026-10-23"}],
+      "terms": [
+        {"id": "amount", "label": "Published maximum", "value": "Facilities up to PKR 20,000,000, secured by acceptable residential, commercial or industrial real estate.", "source_id": "hbl", "topic": "amount"},
+        {"id": "pricing", "label": "Pricing", "value": "KIBOR-linked pricing plus the applicable spread; charges depend on the facility and schedule of bank charges. No fixed rate is asserted here.", "source_id": "hbl", "topic": "pricing"},
+        {"id": "tenor", "label": "Term", "value": "Demand finance can run up to three years. Running finance and trade facilities have different terms.", "source_id": "hbl", "topic": "tenor"},
+        {"id": "documents", "label": "Documents and application", "value": "Prepare CNIC, business data, one-year certified bank statements and relevant property/legal documents. Ask an HBL branch for the complete checklist.", "source_id": "hbl", "topic": "documents"}
+      ],
+      "criteria": [
+        {"id": "age", "label": "Sponsor / borrower age", "requirement": "Published age range: 25–65.", "source_id": "hbl", "kind": "range", "field": "age_years", "minimum": 25, "maximum": 65, "unit": "years"},
+        {"id": "resident", "label": "Pakistani residency", "requirement": "Resident Pakistani sponsor / mortgagor / borrower.", "source_id": "hbl", "kind": "boolean", "field": "resident_pakistani", "expected": true},
+        {"id": "business_age", "label": "Actual business operating age", "requirement": "Business in operation for at least three years. A ledger's recorded history cannot prove operating age.", "source_id": "hbl", "kind": "range", "field": "business_operating_months", "minimum": 36, "unit": "months"},
+        {"id": "statements", "label": "Bank statements prepared", "requirement": "A certified bank statement for the last one year is listed.", "source_id": "hbl", "kind": "range", "field": "bank_statement_months", "minimum": 12, "unit": "months"},
+        {"id": "amount", "label": "Requested amount", "requirement": "The published maximum is PKR 20,000,000; the bank decides the offer.", "source_id": "hbl", "kind": "range", "field": "requested_amount_rupees", "minimum": 1, "maximum": 20000000, "unit": "PKR"},
+        {"id": "security", "label": "Property and legal appraisal", "requirement": "The bank must evaluate acceptable property, legal documents and the application; Karobaar cannot verify collateral.", "source_id": "hbl", "kind": "lender"}
+      ]
+    },
+    {
+      "id": "meezan-islamic-sme-asaan-finance",
+      "short_name": "Meezan I-SAAF",
+      "name": "Meezan Islamic SME Asaan Finance (I-SAAF)",
+      "institution": "Meezan Bank / State Bank of Pakistan",
+      "aliases": ["meezan", "i-saaf", "isaaf", "i saaf", "islamic", "اسلامی", "میزان"],
+      "description": "Shariah-compliant working capital or term finance for SMEs, subject to bank and scheme conditions.",
+      "application_url": "https://www.meezanbank.com/sme-banking/",
+      "availability_note": "The bank's page lists the scheme; confirm present allocation and intake. No verified closing date is published in this snapshot.",
+      "sources": [{"id": "meezan", "title": "Meezan SME banking: I-SAAF section", "url": "https://www.meezanbank.com/sme-banking/", "checked_on": "2026-10-23", "note": "Page wording says both no existing borrower and no current relationship. Keep relationship status for bank confirmation; do not interpret it permissively."}],
+      "terms": [
+        {"id": "amount", "label": "Published maximum", "value": "Up to PKR 10,000,000 for working capital or term finance.", "source_id": "meezan", "topic": "amount"},
+        {"id": "pricing", "label": "Published pricing", "value": "The I-SAAF section quotes 9% per annum. Ask the bank for applicable offer terms and charges.", "source_id": "meezan", "topic": "pricing"},
+        {"id": "tenor", "label": "Term and security", "value": "Tenor follows the approved facility terms. Security follows the bank's internal policy.", "source_id": "meezan", "topic": "tenor"},
+        {"id": "apply", "label": "Application route", "value": "Contact a designated Meezan SME branch and confirm I-SAAF availability and current requirements.", "source_id": "meezan", "topic": "application"}
+      ],
+      "criteria": [
+        {"id": "relationship", "label": "Meezan relationship declaration", "requirement": "Published text excludes existing borrowers and also refers to no current relationship. Confirm any existing relationship directly with Meezan.", "source_id": "meezan", "kind": "boolean", "field": "meezan_existing_relationship", "expected": false},
+        {"id": "single_bank", "label": "I-SAAF at another bank", "requirement": "The facility may be availed from one bank only.", "source_id": "meezan", "kind": "boolean", "field": "other_isaaf_financing", "expected": false},
+        {"id": "amount", "label": "Requested amount", "requirement": "Published limit: up to PKR 10,000,000.", "source_id": "meezan", "kind": "range", "field": "requested_amount_rupees", "minimum": 1, "maximum": 10000000, "unit": "PKR"},
+        {"id": "policy", "label": "SME status, security and bank review", "requirement": "Meezan/SBP policies, security and the bank's assessment still apply. No minimum-sales qualification rule was verified here.", "source_id": "meezan", "kind": "lender"}
+      ]
+    }
+  ]
+}

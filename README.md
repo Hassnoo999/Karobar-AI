@@ -158,3 +158,9 @@ Verification is recorded on 10 October 2026. Earlier hosted synthetic entries de
 ## Scope boundary
 
 Karobaar organizes merchant-confirmed evidence and offers financing reference links. The institution still verifies identity, documents, collateral and final eligibility. The hackathon version does not provide underwriting, a credit score, automatic WhatsApp/SMS delivery, inventory management or banking integrations.
+
+## Phase 2 — local final-round preview (23 October 2026)
+
+The `phase-2` branch adds a dedicated financing workspace: five dated official-source references, published requirements beside temporary applicant declarations, preparation progress and a source-cited question panel. The existing ledger and evidence passport remain intact. A green bar means the listed self-declared preparation checks match—not loan approval, verified documents or a credit score.
+
+Questions retrieve curated facts, optionally using the existing AI providers to select relevant fact IDs. Source answers remain available when that assistance fails. The catalogue is schema-backed for future reviewed updates; it is not a live bank feed and no automatic n8n publishing is running. This checkpoint has not been pushed or deployed. The [Phase 2 implementation ledger](docs/PHASE_2.md) records sources, actual verification, remaining limits and the short rehearsal flow. Earlier verification sections above describe the dated regional release, not this new preview.

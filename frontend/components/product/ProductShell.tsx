@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowUpRight, BookOpenCheck, CircleHelp, LayoutDashboard, LogOut, Menu, MessageCircleMore, Mic2, RefreshCw, ShieldCheck, X } from "lucide-react";
+import { ArrowUpRight, BookOpenCheck, CircleHelp, Landmark, LayoutDashboard, LogOut, Menu, MessageCircleMore, Mic2, RefreshCw, ShieldCheck, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/components/SupabaseProvider";
@@ -15,7 +15,8 @@ const navigation = [
   {href: "/record", label: "Record transaction", short: "Record", icon: Mic2},
   {href: "/ledger", label: "Ledger & udhaar", short: "Ledger", icon: BookOpenCheck},
   {href: "/ask", label: "Ask Karobaar", short: "Ask", icon: MessageCircleMore},
-  {href: "/evidence", label: "Evidence & readiness", short: "Evidence", icon: ShieldCheck},
+  {href: "/evidence", label: "Evidence passport", short: "Evidence", icon: ShieldCheck},
+  {href: "/financing", label: "Financing options", short: "Finance", icon: Landmark},
 ];
 
 function NavLinks({onSelect}: {onSelect?: () => void}) {
@@ -77,6 +78,6 @@ export function ProductShell({children}: {children: React.ReactNode}) {
       </main>
     </div>
     <dialog ref={dialog} aria-label="Workspace navigation" onClick={event => {if (event.target === event.currentTarget) dialog.current?.close();}} className="fixed inset-y-0 left-0 m-0 h-[100dvh] max-h-none w-[min(320px,90vw)] max-w-none border-0 bg-[#102c21] p-5 text-white backdrop:bg-[#0b251d]/50"><div className="mb-5 flex justify-end"><button onClick={() => dialog.current?.close()} aria-label="Close navigation" className="grid h-11 w-11 place-items-center rounded-xl bg-white/10"><X size={20} /></button></div><div className="flex min-h-[calc(100dvh-110px)] flex-col">{sidebar}</div></dialog>
-    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[#dce6df] bg-[#fcfdfa] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgba(16,44,33,.04)] lg:hidden" aria-label="Mobile navigation">{navigation.map(({href, short, icon: Icon}) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className={"flex min-h-[68px] flex-col items-center justify-center gap-1.5 text-[10px] " + (pathname === href ? "font-semibold text-[#145537]" : "text-[#77897b]")}><span className={"rounded-lg px-3 py-1 " + (pathname === href ? "bg-[#e3f0e4]" : "")}><Icon size={19} strokeWidth={pathname === href ? 2 : 1.6} /></span>{short}</Link>)}</nav>
+    <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-6 border-t border-[#dce6df] bg-[#fcfdfa] pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_24px_rgba(16,44,33,.04)] lg:hidden" aria-label="Mobile navigation">{navigation.map(({href, short, icon: Icon}) => <Link key={href} href={href} aria-current={pathname === href ? "page" : undefined} className={"flex min-h-[68px] min-w-0 flex-col items-center justify-center gap-1.5 text-[10px] " + (pathname === href ? "font-semibold text-[#145537]" : "text-[#77897b]")}><span className={"rounded-lg px-2 py-1 " + (pathname === href ? "bg-[#e3f0e4]" : "")}><Icon size={19} strokeWidth={pathname === href ? 2 : 1.6} /></span>{short}</Link>)}</nav>
   </div>;
 }

@@ -211,6 +211,67 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
   .scene-grid { background-size: 64px 64px; opacity: .13; }
 }
 
+/* Phase 2: lightweight depth; no canvas/WebGL or additional animation runtime. */
+.fin-workspace { min-width: 0; }
+.fin-hero { position: relative; isolation: isolate; overflow: hidden; min-height: 320px; padding: 2.25rem; border: 1px solid #214f3a; border-radius: 22px; color: #fff; background: radial-gradient(ellipse at 85% 35%, #34634d 0, transparent 50%), linear-gradient(120deg, #123529, #193f30); }
+.fin-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background-image: linear-gradient(#b8e8cb08 1px, transparent 1px), linear-gradient(90deg, #b8e8cb08 1px, transparent 1px); background-size: 48px 48px; mask-image: linear-gradient(90deg, transparent, #000); }
+.fin-hero h2 { color: inherit; }
+.fin-hero-button { display: inline-flex; align-items: center; gap: 1rem; min-height: 44px; padding: .7rem 1rem; border: 1px solid #b2ebc5; border-radius: 10px; background: #b2ebc5; color: #153d2b; font-size: .75rem; font-weight: 600; }
+.fin-hero-button:hover { background: #ccf6d9; }
+.fin-hero-art { position: absolute; width: 360px; height: 300px; top: 25px; right: 35px; perspective: 950px; pointer-events: none; }
+.fin-hero-orbit { position: absolute; inset: 10px 0; border: 1px solid #9ce9bd38; border-radius: 50%; transform: rotateX(48deg) rotateZ(-25deg); }
+.fin-glass-record, .fin-glass-checks { position: absolute; border: 1px solid #cbffe13d; border-radius: 20px; background: linear-gradient(135deg, #d2f8e11f, #b1f2d006); backdrop-filter: blur(8px); box-shadow: inset 0 1px #fff2, 0 24px 60px #001c2347; }
+.fin-glass-record { left: 8px; top: 24px; width: 175px; padding: 21px; transform: rotateY(16deg) rotateZ(-9deg); animation: fin-proof-float 9s ease-in-out infinite; }
+.fin-glass-record svg { color: #c3f2d1; }
+.fin-glass-record > span { display: block; margin-top: 14px; font-size: 10px; color: #c0dbc9; }
+.fin-glass-record > strong { display: block; margin-top: 6px; font-size: 38px; font-weight: 500; line-height: 1.2; }
+.fin-glass-record > small { display: block; margin-top: 13px; font-size: 9px; line-height: 1.7; color: #a5cab4; }
+.fin-glass-checks { right: 0; bottom: 12px; width: 185px; padding: 20px 17px; text-align: center; transform: rotateY(-14deg) rotateZ(7deg); border-color: #edcaa34a; background: linear-gradient(140deg, #f5d9b91a, #d9f0dd08); animation: fin-check-float 11s ease-in-out infinite; }
+.fin-checks-ring { display: grid; place-items: center; width: 88px; height: 88px; margin: 0 auto 14px; border-radius: 50%; }
+.fin-checks-ring > span { display: grid; place-content: center; width: 74px; height: 74px; border-radius: 50%; background: #284d3b; font-size: 27px; line-height: 1.1; }
+.fin-checks-ring small { display: block; margin-top: 4px; color: #b2cbbb; font-size: 9px; }
+.fin-glass-checks p { font-size: 10px; line-height: 1.7; color: #e2eede; }
+.fin-glass-checks > small { font-size: 9px; color: #b3c7b9; }
+.fin-scheme-card { display: flex; flex-direction: column; min-width: 0; padding: 1.5rem; border: 1px solid #dfe8db; border-radius: 18px; background: linear-gradient(145deg, #fff, #fbfdf8); box-shadow: 0 5px 20px #173d2e04; transition: border-color .2s, box-shadow .2s, transform .2s; }
+.fin-scheme-card:hover { border-color: #b5ceb5; box-shadow: 0 12px 30px #173d2e0b; transform: translateY(-3px); }
+.fin-scheme-card .ui-badge { white-space: normal; text-align: right; max-width: 180px; font-size: .62rem; }
+.fin-bank-symbol { display: inline-grid; flex-shrink: 0; place-items: center; width: 42px; height: 42px; border: 1px solid #d6e6d6; border-radius: 13px; background: linear-gradient(145deg, #f2f8ed, #e6f2df); color: #557551; font-size: .8rem; font-weight: 600; }
+.fin-progress-track { height: 7px; overflow: hidden; border-radius: 20px; background: #e7eee1; }
+.fin-progress-track > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #a4b494, #729a68); transition: width .5s ease; }
+.fin-progress-track > .is-complete { background: linear-gradient(90deg, #78c59a, #288561); }
+.fin-source-link { display: inline-flex; align-items: center; gap: .5rem; min-width: 0; max-width: 100%; padding: .65rem .75rem; border: 1px solid #d9e6d5; border-radius: 10px; background: #fff; color: #486a49; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.fin-source-link:hover { background: #f0f7eb; border-color: #a9c5a3; }
+.fin-source-link small { display: block; font-size: 9px; color: #82917d; }
+.fin-question-box { padding: 1.4rem; border: 1px solid #dce8d7; border-radius: 18px; background: #fff; }
+.fin-example { display: inline-flex; align-items: center; gap: .5rem; min-height: 38px; padding: .4rem .65rem; border: 1px solid #dce8d6; border-radius: 9px; background: #f6faf1; text-align: left; font-size: 11px; color: #597754; }
+.fin-example svg { flex-shrink: 0; }
+.fin-example:hover { border-color: #a6c29e; }
+.fin-dialog { width: calc(100% - 40px); max-height: 90dvh; margin: auto; padding: 0; overflow: auto; border: 1px solid #d6e2d5; border-radius: 20px; background: #fff; color: #244630; box-shadow: 0 35px 100px #001e2966; }
+.fin-dialog::backdrop { background: #071e28a8; backdrop-filter: blur(7px); }
+.fin-dialog[open] { animation: fin-dialog-enter .22s ease both; }
+.fin-dialog-header { position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 1.3rem 1.6rem; border-bottom: 1px solid #e4ecdf; background: #fcfef9f5; backdrop-filter: blur(8px); }
+.fin-dialog-header h2 { font-size: 1.1rem; font-weight: 500; }
+.fin-close { display: grid; flex-shrink: 0; place-items: center; width: 44px; height: 44px; border: 1px solid #dce7d7; border-radius: 11px; color: #698166; }
+.fin-close:hover { background: #edf5e7; }
+.fin-dialog-content { padding: 1.6rem; }
+.fin-dialog-footer { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem 1.6rem; border-top: 1px solid #e4ecdf; background: #fcfef9f5; backdrop-filter: blur(8px); }
+@keyframes fin-proof-float { 0%, 100% { transform: rotateY(16deg) rotateZ(-9deg) translateY(0); } 50% { transform: rotateY(8deg) rotateZ(-6deg) translateY(-9px); } }
+@keyframes fin-check-float { 0%, 100% { transform: rotateY(-14deg) rotateZ(7deg) translateY(0); } 50% { transform: rotateY(-8deg) rotateZ(4deg) translateY(8px); } }
+@keyframes fin-dialog-enter { from { opacity: .2; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (min-width: 768px) and (max-width: 1279px) { .fin-hero-art { right: -65px; opacity: .32; } .fin-hero > div:first-child { max-width: 75%; } }
+@media (max-width: 767px) {
+  .fin-hero { padding: 1.4rem; min-height: 0; }
+  .fin-hero-art { position: relative; top: auto; right: auto; width: 280px; max-width: 100%; height: 265px; margin: 1.5rem auto 0; }
+  .fin-glass-record { width: 150px; padding: 17px; }
+  .fin-glass-checks { width: 155px; padding: 15px; }
+  .fin-scheme-card { padding: 1.2rem; }
+  .fin-dialog { width: calc(100% - 20px); max-height: 94dvh; border-radius: 14px; }
+  .fin-dialog-header, .fin-dialog-content { padding: 1rem; }
+  .fin-dialog-header h2 { font-size: .95rem; }
+  .fin-dialog-footer { position: static; padding: 1rem; }
+  .fin-question-box { padding: 1rem; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }

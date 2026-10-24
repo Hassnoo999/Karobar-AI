@@ -28,6 +28,11 @@ async def suggestions():
 @router.post("", response_model=AskResponse)
 async def ask(payload: AskRequest, db: Session = Depends(get_db), merchant_id: str = Depends(get_merchant_id)):
     today = pkt_today()
+    from app.schemas.financing_workspace import SchemeQuestion
+    from app.services.financing_workspace import is_financing_question, answer_scheme_question
+
+    if is_financing_question(payload.question):
+        return await answer_scheme_question(SchemeQuestion(question=payload.question), today)
     tool_call = resolve_question(payload.question, today)
     if tool_call is None:
         try:
